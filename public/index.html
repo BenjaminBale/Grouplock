@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grouple · Demo</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;}
+
+/* Top nav */
+.topnav{background:#003580;color:white;padding:0;display:flex;align-items:stretch;}
+.topnav-brand{padding:12px 20px;font-size:16px;font-weight:500;border-right:1px solid rgba(255,255,255,.15);}
+.topnav-brand span{color:#febb02;}
+.topnav-tabs{display:flex;flex:1;}
+.topnav-tab{padding:12px 18px;font-size:13px;color:rgba(255,255,255,.65);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;transition:all .15s;}
+.topnav-tab:hover{color:white;background:rgba(255,255,255,.08);}
+.topnav-tab.active{color:white;border-bottom-color:#febb02;}
+.topnav-tab.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+.topnav-back{margin-left:auto;padding:10px 16px;display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:none;}
+.topnav-back:hover{color:white;}
+
+/* Screens */
+.screen{display:none;max-width:960px;margin:24px auto;padding:0 16px;}
+.screen.active{display:block;}
+
+/* Two col layout */
+.layout{display:grid;grid-template-columns:1fr 340px;gap:20px;}
+@media(max-width:700px){.layout{grid-template-columns:1fr;}}
+
+/* Cards */
+.card{background:white;border-radius:12px;padding:20px;border:1px solid #ddd;margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:500;margin-bottom:12px;color:#111;}
+
+/* Property */
+.prop-img{width:100%;height:200px;background:linear-gradient(135deg,#b8d4e8,#6a9bb8);border-radius:10px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;opacity:.9;}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.chip{font-size:11px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:20px;padding:3px 10px;color:#555;}
+
+/* Price rows */
+.price-row{display:flex;justify-content:space-between;font-size:13px;color:#666;padding:5px 0;border-bottom:1px solid #f0f0f0;}
+.price-row:last-of-type{border-bottom:none;}
+.price-total{display:flex;justify-content:space-between;font-size:15px;font-weight:600;padding-top:10px;margin-top:6px;border-top:1px solid #eee;}
+
+/* Pay options */
+.pay-option{border:1.5px solid #e0e0e0;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s;}
+.pay-option.selected{border-color:#1D9E75;background:#f0faf6;}
+.radio{width:17px;height:17px;border-radius:50%;border:2px solid #ccc;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.radio.on{border-color:#1D9E75;background:#1D9E75;}
+.radio.on::after{content:'';width:6px;height:6px;background:white;border-radius:50%;}
+.pay-label{font-size:13px;font-weight:500;}
+.pay-sub{font-size:11px;color:#888;margin-top:2px;}
+.gl-badge{font-size:10px;background:#e0f5ec;color:#0d6e52;padding:2px 6px;border-radius:4px;font-weight:500;margin-left:6px;}
+
+/* Grouple panel */
+.gl-panel{background:#f0faf6;border:1.5px solid #1D9E75;border-radius:10px;padding:14px;margin-top:8px;}
+.gl-panel-title{font-size:12px;font-weight:600;color:#0d6e52;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.gl-row{display:flex;justify-content:space-between;font-size:12px;color:#0d6e52;padding:3px 0;}
+.people-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.stepper{display:flex;align-items:center;border:1.5px solid #9fe1cb;border-radius:8px;overflow:hidden;}
+.stepper button{width:32px;height:32px;background:#e0f5ec;border:none;cursor:pointer;font-size:18px;color:#0d6e52;font-weight:400;line-height:1;}
+.stepper button:hover{background:#c5edd9;}
+.stepper span{padding:0 16px;font-size:15px;font-weight:600;color:#0d6e52;background:white;height:32px;display:flex;align-items:center;border-left:1.5px solid #9fe1cb;border-right:1.5px solid #9fe1cb;}
+.gl-note{font-size:11px;color:#0f6e56;margin-top:8px;line-height:1.5;}
+
+/* Buttons */
+.btn{display:block;width:100%;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;margin-top:10px;}
+.btn-green{background:#1D9E75;color:white;}
+.btn-green:hover{background:#178a65;}
+.btn-green:disabled{opacity:.5;cursor:not-allowed;}
+.btn-outline{background:white;color:#333;border:1.5px solid #ddd;}
+.btn-outline:hover{background:#f5f5f5;}
+.btn-blue{background:#003580;color:white;}
+.btn-blue:hover{background:#002870;}
+.hint{font-size:11px;color:#aaa;text-align:center;margin-top:8px;}
+
+/* Dashboard */
+.pool-track{height:10px;background:#f0f0f0;border-radius:5px;margin:8px 0;overflow:hidden;}
+.pool-fill{height:100%;background:#1D9E75;border-radius:5px;transition:width .6s ease;}
+.member-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}
+.member-item:last-child{border-bottom:none;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.av-paid{background:#e0f5ec;color:#0d6e52;}
+.av-pending{background:#fff8e6;color:#854f0b;}
+.av-wait{background:#f5f5f5;color:#888;border:1px solid #e0e0e0;}
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500;margin-left:auto;flex-shrink:0;}
+.badge-paid{background:#e0f5ec;color:#0d6e52;}
+.badge-pending{background:#fff8e6;color:#854f0b;}
+.badge-wait{background:#f5f5f5;color:#888;border:1px solid #e0e0e0;}
+
+/* Share box */
+.share-box{background:#f0faf6;border:1.5px solid #9fe1cb;border-radius:10px;padding:16px;text-align:center;margin-bottom:14px;}
+.share-label{font-size:11px;color:#0f6e56;}
+.share-amount{font-size:34px;font-weight:700;color:#0d6e52;margin:4px 0;}
+.share-sub{font-size:11px;color:#0f6e56;}
+
+/* Payment */
+input{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;outline:none;font-family:inherit;}
+input:focus{border-color:#1D9E75;}
+#payment-element{margin:10px 0;}
+.stripe-loading{font-size:12px;color:#aaa;text-align:center;padding:24px;background:#f9f9f9;border-radius:8px;border:1px solid #eee;}
+.error-msg{color:#c0392b;font-size:12px;margin-top:6px;padding:8px;background:#fef5f5;border-radius:6px;display:none;}
+
+/* Success */
+.success-wrap{text-align:center;padding:30px 20px;}
+.success-icon{width:60px;height:60px;background:#e0f5ec;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;color:#1D9E75;}
+.summary-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;}
+.summary-row:last-child{border-bottom:none;}
+
+/* Link box */
+.link-box{display:flex;gap:8px;margin-top:8px;}
+.link-box input{margin-bottom:0;font-size:11px;color:#666;background:#f9f9f9;}
+.link-box button{white-space:nowrap;padding:10px 14px;background:#1D9E75;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;}
+
+.info-note{font-size:12px;color:#666;line-height:1.6;background:#f9f9f9;border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+.stat-row{display:flex;gap:10px;margin-bottom:14px;}
+.stat{flex:1;background:#f9f9f9;border-radius:8px;padding:10px;text-align:center;}
+.stat-val{font-size:20px;font-weight:600;color:#111;}
+.stat-label{font-size:11px;color:#888;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-brand">booking<span>.</span>com <span style="font-size:11px;opacity:.5;margin-left:8px;">Grouple demo</span></div>
+  <div class="topnav-tabs">
+    <button class="topnav-tab active" id="tab-checkout" onclick="showScreen('checkout')">Checkout</button>
+    <button class="topnav-tab disabled" id="tab-dashboard" onclick="showScreen('dashboard')">Group dashboard</button>
+    <button class="topnav-tab disabled" id="tab-pay" onclick="showScreen('pay')">Pay your share</button>
+    <button class="topnav-tab disabled" id="tab-confirmed" onclick="showScreen('confirmed')">Confirmed</button>
+  </div>
+</div>
+
+<!-- SCREEN: Checkout -->
+<div class="screen active" id="screen-checkout">
+  <div class="layout">
+    <div>
+      <div class="prop-img">Villa das Pedras · Algarve</div>
+      <h2 style="font-size:20px;margin-bottom:4px;">Villa das Pedras, Algarve</h2>
+      <p style="font-size:13px;color:#666;margin-bottom:12px;">14–21 Aug 2025 · 7 nights · Up to 12 guests</p>
+      <div class="chips">
+        <span class="chip">Private pool</span><span class="chip">WiFi</span><span class="chip">Sea views</span><span class="chip">4.9 ★</span><span class="chip">Free cancellation</span>
+      </div>
+      <p style="font-size:13px;color:#555;line-height:1.7;">Beautiful 5-bedroom villa with panoramic ocean views, private pool, and fully equipped kitchen. Perfect for group celebrations and holidays.</p>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Price summary</div>
+        <div class="price-row"><span>7 nights × £257</span><span>£1,799</span></div>
+        <div class="price-row"><span>Cleaning fee</span><span>£120</span></div>
+        <div class="price-row"><span>Service fee</span><span>£81</span></div>
+        <div class="price-total"><span>Total</span><span>£2,000</span></div>
+
+        <div style="font-size:12px;font-weight:500;margin:16px 0 8px;">How would you like to pay?</div>
+        <div class="pay-option" id="opt-full" onclick="selectPay('full')">
+          <div class="radio" id="r-full"></div>
+          <div><div class="pay-label">Pay in full — £2,000</div><div class="pay-sub">Charged to your card now</div></div>
+        </div>
+        <div class="pay-option selected" id="opt-group" onclick="selectPay('group')">
+          <div class="radio on" id="r-group"></div>
+          <div>
+            <div class="pay-label">Split with your group <span class="gl-badge">Grouple</span></div>
+            <div class="pay-sub">Each person pays their own share</div>
+          </div>
+        </div>
+
+        <div class="gl-panel" id="gl-panel">
+          <div class="gl-panel-title">🔒 Grouple · group payment</div>
+          <div class="people-row">
+            <span style="font-size:12px;color:#0d6e52;font-weight:500;">Number of people</span>
+            <div class="stepper">
+              <button onclick="changePeople(-1)">−</button>
+              <span id="pcount">9</span>
+              <button onclick="changePeople(1)">+</button>
+            </div>
+          </div>
+          <div class="gl-row"><span>Each person pays</span><span style="font-weight:600;" id="per-head">£222</span></div>
+          <div class="gl-row"><span>Total</span><span>£2,000</span></div>
+          <div class="gl-note">Booking confirms only when all <span id="confirm-n">9</span> people pay. If the group doesn't fill, everyone is refunded automatically.</div>
+        </div>
+
+        <button class="btn btn-green" id="checkout-btn" onclick="createBooking()">Invite my group →</button>
+        <div class="hint">🔒 No charge until your full group confirms</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: Dashboard -->
+<div class="screen" id="screen-dashboard">
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="card-title">Group status</div>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-val" id="d-paid">0</div><div class="stat-label">Paid</div></div>
+          <div class="stat"><div class="stat-val" id="d-total">9</div><div class="stat-label">Total</div></div>
+          <div class="stat"><div class="stat-val" id="d-collected">£0</div><div class="stat-label">Collected</div></div>
+          <div class="stat"><div class="stat-val" id="d-remaining">£2,000</div><div class="stat-label">Remaining</div></div>
+        </div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px;">Pool progress</div>
+        <div class="pool-track"><div class="pool-fill" id="d-bar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:#888;margin-bottom:16px;" id="d-pct">0% collected</div>
+
+        <div style="font-size:12px;font-weight:500;margin-bottom:10px;">Group members</div>
+        <div id="d-member-list"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Trip details</div>
+        <div class="summary-row"><span style="color:#888">Property</span><span>Villa das Pedras</span></div>
+        <div class="summary-row"><span style="color:#888">Dates</span><span>14–21 Aug 2025</span></div>
+        <div class="summary-row"><span style="color:#888">Guests</span><span id="d-guests">9 people</span></div>
+        <div class="summary-row"><span style="color:#888">Each pays</span><span id="d-each">£222</span></div>
+        <div class="summary-row"><span style="color:#888">Total</span><span>£2,000</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Invite your group</div>
+        <div class="info-note">Share this link with everyone. Each person pays their own share directly — no chasing needed.</div>
+        <div class="link-box">
+          <input type="text" id="invite-link" readonly />
+          <button onclick="copyLink()">Copy</button>
+        </div>
+        <button class="btn btn-green" style="margin-top:12px;" onclick="simulatePay()">Simulate a member paying →</button>
+        <div id="d-msg" style="font-size:11px;color:#0d6e52;margin-top:8px;text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: Pay -->
+<div class="screen" id="screen-pay">
+  <div style="max-width:480px;margin:0 auto;">
+    <div class="card">
+      <div style="margin-bottom:16px;">
+        <h3 style="font-size:16px;margin-bottom:4px;">Pay your share</h3>
+        <p style="font-size:12px;color:#888;">Villa das Pedras, Algarve · 14–21 Aug 2025</p>
+      </div>
+
+      <div class="stat-row" style="margin-bottom:14px;">
+        <div class="stat"><div class="stat-val" id="p-paid">0</div><div class="stat-label">Paid so far</div></div>
+        <div class="stat"><div class="stat-val" id="p-total">9</div><div class="stat-label">Total needed</div></div>
+        <div class="stat"><div class="stat-val" id="p-left">9</div><div class="stat-label">Still needed</div></div>
+      </div>
+
+      <div class="share-box">
+        <div class="share-label">Your share to pay</div>
+        <div class="share-amount" id="p-amount">£222</div>
+        <div class="share-sub">Booking confirms when all members pay · refunded if not</div>
+      </div>
+
+      <input type="text" id="p-name" placeholder="Your name" />
+      <input type="email" id="p-email" placeholder="Your email (for confirmation)" />
+
+      <div id="payment-element"><div class="stripe-loading">Loading secure payment form...</div></div>
+      <div id="p-error" class="error-msg"></div>
+      <button class="btn btn-green" id="p-btn" onclick="submitPay()" disabled>Loading payment form...</button>
+      <div class="hint">Secured by Stripe · Powered by Grouple</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: Confirmed -->
+<div class="screen" id="screen-confirmed">
+  <div style="max-width:540px;margin:0 auto;">
+    <div class="card">
+      <div class="success-wrap">
+        <div class="success-icon">✓</div>
+        <h2 style="font-size:20px;margin-bottom:8px;">Villa das Pedras is booked!</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:20px;">All group members paid. The hotel has been notified and the booking is confirmed.</p>
+        <div style="background:#f9f9f9;border-radius:10px;padding:14px;text-align:left;margin-bottom:16px;" id="confirm-summary"></div>
+        <div style="font-size:11px;color:#aaa;">Dropout protection active until trip date · Powered by Grouple</div>
+        <button class="btn btn-outline" style="margin-top:16px;max-width:200px;" onclick="resetDemo()">Start new demo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 200000; // pence
+let people = 9;
+let booking = null;
+let stripeInstance = null;
+let stripeElements = null;
+let currentMemberId = null;
+let refreshInterval = null;
+
+// On page load, check if we're returning from a Stripe payment
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = params.get('booking');
+  if (bookingId) {
+    try {
+      const res = await fetch('/api/booking/' + bookingId);
+      const data = await res.json();
+      if (data.bookingId) {
+        booking = { bookingId: data.bookingId, shareAmount: data.shareAmount, depositAmount: data.shareAmount };
+        people = data.groupSize;
+        enableTab('dashboard');
+        enableTab('pay');
+        showScreen('dashboard');
+        document.getElementById('invite-link').value = window.location.origin + '?booking=' + bookingId;
+        refreshDashboard();
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(refreshDashboard, 3000);
+        if (data.status === 'complete') {
+          enableTab('confirmed');
+          showConfirmed(data);
+        }
+      }
+    } catch(err) { console.log('Restore error:', err); }
+  }
+});
+
+// ── UI helpers ──────────────────────────────────────────────
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function enableTab(name) {
+  document.getElementById('tab-' + name).classList.remove('disabled');
+}
+
+function selectPay(type) {
+  const isG = type === 'group';
+  document.getElementById('opt-group').classList.toggle('selected', isG);
+  document.getElementById('opt-full').classList.toggle('selected', !isG);
+  document.getElementById('r-group').className = 'radio' + (isG ? ' on' : '');
+  document.getElementById('r-full').className = 'radio' + (!isG ? ' on' : '');
+  document.getElementById('gl-panel').style.display = isG ? 'block' : 'none';
+  document.getElementById('checkout-btn').textContent = isG ? 'Invite my group →' : 'Pay £2,000 now';
+}
+
+function changePeople(d) {
+  const n = people + d;
+  if (n < 2 || n > 20) return;
+  people = n;
+  const share = Math.round(TOTAL / people / 100);
+  document.getElementById('pcount').textContent = people;
+  document.getElementById('per-head').textContent = '£' + share;
+  document.getElementById('confirm-n').textContent = people;
+}
+
+// ── Booking ──────────────────────────────────────────────
+
+async function createBooking() {
+  const btn = document.getElementById('checkout-btn');
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/booking/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ propertyName: 'Villa das Pedras, Algarve', totalAmount: TOTAL, groupSize: people, currency: 'gbp', deadlineHours: 48 })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    booking = data;
+    enableTab('dashboard');
+    enableTab('pay');
+    showScreen('dashboard');
+    document.getElementById('invite-link').value = `${window.location.origin}?booking=${data.bookingId}`;
+    refreshDashboard();
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(refreshDashboard, 4000);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.textContent = 'Invite my group →';
+    btn.disabled = false;
+  }
+}
+
+async function refreshDashboard() {
+  if (!booking) return;
+  const res = await fetch('/api/booking/' + booking.bookingId);
+  const data = await res.json();
+
+  const paidCount = data.paidCount;
+  const share = data.shareAmount;
+  const collected = paidCount * share;
+  const remaining = data.totalAmount - collected;
+  const pct = Math.round(collected / data.totalAmount * 100);
+
+  document.getElementById('d-paid').textContent = paidCount;
+  document.getElementById('d-total').textContent = data.groupSize;
+  document.getElementById('d-collected').textContent = '£' + collected;
+  document.getElementById('d-remaining').textContent = '£' + remaining;
+  document.getElementById('d-bar').style.width = pct + '%';
+  document.getElementById('d-pct').textContent = pct + '% collected';
+  document.getElementById('d-guests').textContent = data.groupSize + ' people';
+  document.getElementById('d-each').textContent = '£' + share;
+
+  // Pay screen stats
+  document.getElementById('p-paid').textContent = paidCount;
+  document.getElementById('p-total').textContent = data.groupSize;
+  document.getElementById('p-left').textContent = data.groupSize - paidCount;
+  document.getElementById('p-amount').textContent = '£' + share;
+
+  const list = document.getElementById('d-member-list');
+  list.innerHTML = data.members.map((m, i) => `
+    <div class="member-item">
+      <div class="av ${m.paid ? 'av-paid' : i === 0 ? 'av-pending' : 'av-wait'}">${m.name ? m.name.substring(0,2).toUpperCase() : (i+1)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;">${m.name || 'Slot ' + (i+1)}</div>
+        ${m.paidAt ? '<div style="font-size:10px;color:#888;">Paid at ' + new Date(m.paidAt).toLocaleTimeString() + '</div>' : ''}
+      </div>
+      <span class="badge ${m.paid ? 'badge-paid' : i === 0 ? 'badge-pending' : 'badge-wait'}">${m.paid ? '✓ Paid £' + share : i === 0 ? 'Organiser' : 'Waiting'}</span>
+    </div>
+  `).join('');
+
+  if (data.status === 'complete') {
+    clearInterval(refreshInterval);
+    enableTab('confirmed');
+    showConfirmed(data);
+  }
+}
+
+// ── Payment ──────────────────────────────────────────────
+
+async function simulatePay() {
+  if (!booking) return;
+  const res = await fetch('/api/booking/' + booking.bookingId);
+  const data = await res.json();
+  const unpaid = data.members.find(m => !m.paid);
+  if (!unpaid) { document.getElementById('d-msg').textContent = 'All members have paid!'; return; }
+
+  currentMemberId = unpaid.memberId;
+  const slotNum = data.members.findIndex(m => m.memberId === unpaid.memberId) + 1;
+  document.getElementById('d-msg').textContent = 'Opening payment for slot ' + slotNum + '...';
+  const payUrl = '/pay.html?booking=' + booking.bookingId + '&member=' + unpaid.memberId;
+  window.open(payUrl, '_blank');
+  document.getElementById('d-msg').textContent = 'Payment page opened. Use card 4242 4242 4242 4242, expiry 12/28, CVC 123.';
+  setInterval(() => refreshDashboard(), 3000);
+}
+
+async function loadPayScreen(memberId) {
+  // Handled by pay.html
+}
+
+async function submitPay() {
+  const name = document.getElementById('p-name').value || 'Group member';
+  const btn = document.getElementById('p-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  document.getElementById('p-error').style.display = 'none';
+
+  try {
+    const result = await stripeInstance.confirmPayment({
+      elements: stripeElements,
+      redirect: 'if_required',
+      confirmParams: { payment_method_data: { billing_details: { name } } }
+    });
+
+    if (result.error) {
+      const errEl = document.getElementById('p-error');
+      errEl.textContent = result.error.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Pay →';
+      return;
+    }
+
+    await fetch('/api/booking/' + booking.bookingId + '/confirm/' + currentMemberId, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    });
+
+    showScreen('dashboard');
+    refreshDashboard();
+    document.getElementById('d-msg').textContent = '✓ Payment confirmed! Click "Simulate a member paying" to pay the next person.';
+
+  } catch (err) {
+    const errEl = document.getElementById('p-error');
+    errEl.textContent = 'Payment failed: ' + err.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Pay →';
+  }
+}
+
+// ── Confirmed ──────────────────────────────────────────────
+
+function showConfirmed(data) {
+  document.getElementById('confirm-summary').innerHTML = `
+    <div class="summary-row"><span style="color:#888">Property</span><span>Villa das Pedras</span></div>
+    <div class="summary-row"><span style="color:#888">Dates</span><span>14–21 Aug 2025</span></div>
+    <div class="summary-row"><span style="color:#888">Guests</span><span>${data.groupSize} people</span></div>
+    <div class="summary-row"><span style="color:#888">Each paid</span><span>£${data.shareAmount}</span></div>
+    <div class="summary-row"><span style="color:#888">Total collected</span><span style="color:#1D9E75;font-weight:600;">£${data.totalAmount}</span></div>
+    <div class="summary-row"><span style="color:#888">Booking ref</span><span style="font-family:monospace;font-size:11px;">${data.bookingId.substring(0,8).toUpperCase()}</span></div>
+  `;
+  enableTab('confirmed');
+  showScreen('confirmed');
+}
+
+function copyLink() {
+  const input = document.getElementById('invite-link');
+  navigator.clipboard.writeText(input.value).then(() => {
+    document.getElementById('d-msg').textContent = '✓ Link copied!';
+    setTimeout(() => document.getElementById('d-msg').textContent = '', 2000);
+  });
+}
+
+function resetDemo() {
+  booking = null;
+  people = 9;
+  clearInterval(refreshInterval);
+  document.getElementById('pcount').textContent = '9';
+  document.getElementById('per-head').textContent = '£222';
+  document.getElementById('confirm-n').textContent = '9';
+  ['dashboard','pay','confirmed'].forEach(t => document.getElementById('tab-'+t).classList.add('disabled'));
+  showScreen('checkout');
+}
+</script>
+</body>
+</html>
