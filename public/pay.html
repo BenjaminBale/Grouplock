@@ -4,198 +4,59 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grouple · Pay your share</title>
-<script src="https://js.stripe.com/v3/"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-.card{background:white;border-radius:14px;max-width:480px;width:100%;overflow:hidden;border:1px solid #e0e0e0;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+body{font-family:-apple-system,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:white;border-radius:14px;max-width:480px;width:100%;overflow:hidden;border:1px solid #e0e0e0;}
 .header{background:#1D9E75;padding:20px 24px;color:white;}
 .header h2{font-size:16px;margin-bottom:4px;}
 .header p{font-size:12px;opacity:.85;}
-.body{padding:22px 24px;}
-.property-box{display:flex;gap:12px;background:#f5f5f5;border-radius:8px;padding:12px;margin-bottom:16px;}
-.property-img{width:50px;height:42px;background:#b8d4e8;border-radius:6px;flex-shrink:0;}
-.property-name{font-size:13px;font-weight:500;}
-.property-sub{font-size:11px;color:#888;margin-top:2px;}
-.share-box{background:#f0faf6;border:1px solid #9fe1cb;border-radius:8px;padding:16px;text-align:center;margin-bottom:16px;}
-.share-label{font-size:11px;color:#0f6e56;}
+.body{padding:22px 24px;text-align:center;}
+.share-box{background:#f0faf6;border:1px solid #9fe1cb;border-radius:8px;padding:16px;margin-bottom:16px;}
 .share-amount{font-size:32px;font-weight:700;color:#0d6e52;margin:4px 0;}
-.share-sub{font-size:11px;color:#0f6e56;}
-.stats{display:flex;gap:8px;margin-bottom:16px;}
-.stat{flex:1;background:#f9f9f9;border-radius:8px;padding:8px;text-align:center;}
-.stat-val{font-size:16px;font-weight:600;color:#111;}
-.stat-label{font-size:10px;color:#888;margin-top:2px;}
-input{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;outline:none;font-family:inherit;}
-input:focus{border-color:#1D9E75;}
-#payment-element{margin:10px 0 4px;min-height:44px;}
-.stripe-loading{font-size:12px;color:#aaa;text-align:center;padding:20px;background:#f9f9f9;border-radius:8px;border:1px solid #eee;}
-.pay-btn{width:100%;background:#1D9E75;color:white;border:none;border-radius:8px;padding:13px;font-size:15px;font-weight:500;cursor:pointer;margin-top:10px;transition:background .15s;}
-.pay-btn:hover:not(:disabled){background:#178a65;}
-.pay-btn:disabled{opacity:.55;cursor:not-allowed;}
-.error{color:#c0392b;font-size:12px;margin-top:8px;padding:8px 10px;background:#fef5f5;border-radius:6px;display:none;}
-.hint{font-size:11px;color:#aaa;text-align:center;margin-top:10px;}
-.success-wrap{text-align:center;padding:32px 20px;}
-.success-icon{width:60px;height:60px;background:#e0f5ec;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;color:#1D9E75;}
-.back-btn{display:inline-block;background:#1D9E75;color:white;padding:11px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;margin-top:16px;}
+.share-label,.share-sub{font-size:11px;color:#0f6e56;}
+.spinner{width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{font-size:14px;color:#666;margin:20px 0;}
+.error{color:#c0392b;font-size:13px;margin-top:12px;display:none;}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="header">
-    <h2>Pay your share</h2>
-    <p id="header-sub">Secure group payment · Powered by Grouple</p>
-  </div>
-  <div class="body" id="pay-body">
-    <div class="property-box">
-      <div class="property-img"></div>
-      <div>
-        <div class="property-name" id="prop-name">Loading...</div>
-        <div class="property-sub" id="prop-sub">Group booking</div>
-      </div>
-    </div>
-
-    <div class="stats">
-      <div class="stat"><div class="stat-val" id="s-paid">0</div><div class="stat-label">Paid so far</div></div>
-      <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-label">Total needed</div></div>
-      <div class="stat"><div class="stat-val" id="s-left">—</div><div class="stat-label">Still needed</div></div>
-    </div>
-
+  <div class="header"><h2>Pay your share</h2><p>Secure group payment · Powered by Grouple</p></div>
+  <div class="body">
     <div class="share-box">
       <div class="share-label">Your share</div>
-      <div class="share-amount" id="amount-display">—</div>
+      <div class="share-amount" id="amount">Loading...</div>
       <div class="share-sub">Held securely · refunded if group doesn't fill</div>
     </div>
-
-    <input type="text" id="name-input" placeholder="Your name" />
-    <input type="email" id="email-input" placeholder="Your email (for confirmation)" />
-
-    <div id="payment-element"><div class="stripe-loading">Loading secure payment form...</div></div>
-    <div id="error-msg" class="error"></div>
-    <button class="pay-btn" id="pay-btn" disabled onclick="submitPayment()">Loading...</button>
-    <div class="hint">🔒 Secured by Stripe · Powered by Grouple</div>
+    <div class="spinner"></div>
+    <div class="loading">Redirecting to secure payment...</div>
+    <div class="error" id="error"></div>
   </div>
 </div>
-
 <script>
-const params = new URLSearchParams(window.location.search);
-const bookingId = params.get('booking');
-const memberId = params.get('member');
-let stripe, elements;
-
-async function init() {
-  if (!bookingId || !memberId) {
-    showError('Invalid invite link.');
-    return;
-  }
-
-  // Load booking status first
-  try {
-    const statusRes = await fetch('/api/booking/' + bookingId);
-    const status = await statusRes.json();
-    if (status.bookingId) {
-      document.getElementById('prop-name').textContent = status.propertyName || 'Group booking';
-      document.getElementById('s-paid').textContent = status.paidCount;
-      document.getElementById('s-total').textContent = status.groupSize;
-      document.getElementById('s-left').textContent = status.groupSize - status.paidCount;
-      document.getElementById('amount-display').textContent = '£' + status.shareAmount;
-    }
-  } catch(e) {}
-
-  // Create payment intent
-  try {
-    const res = await fetch('/api/booking/' + bookingId + '/pay/' + memberId, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: '', email: '' })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    document.getElementById('prop-name').textContent = data.propertyName;
-    document.getElementById('amount-display').textContent = '£' + data.amount;
-
-    stripe = Stripe(data.publishableKey);
-    elements = stripe.elements({
-      clientSecret: data.clientSecret,
-      appearance: {
-        theme: 'stripe',
-        variables: { colorPrimary: '#1D9E75', borderRadius: '8px' }
-      }
-    });
-
-    const paymentEl = elements.create('payment', { layout: 'tabs' });
-    document.getElementById('payment-element').innerHTML = '';
-    paymentEl.mount('#payment-element');
-
-    paymentEl.on('ready', () => {
-      const btn = document.getElementById('pay-btn');
-      btn.textContent = 'Pay £' + data.amount + ' →';
-      btn.disabled = false;
-    });
-
-  } catch (err) {
-    showError('Error: ' + err.message);
-  }
+const p=new URLSearchParams(window.location.search);
+const bookingId=p.get('booking');
+const memberId=p.get('member');
+async function init(){
+  if(!bookingId||!memberId){showError('Invalid invite link.');return;}
+  try{
+    const s=await fetch('/api/booking/'+bookingId);
+    const sd=await s.json();
+    if(sd.shareAmount)document.getElementById('amount').textContent='£'+sd.shareAmount;
+    const res=await fetch('/api/booking/'+bookingId+'/checkout/'+memberId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    window.location.href=data.url;
+  }catch(err){showError('Error: '+err.message);}
 }
-
-async function submitPayment() {
-  const name = document.getElementById('name-input').value || 'Group member';
-  const btn = document.getElementById('pay-btn');
-  btn.disabled = true;
-  btn.textContent = 'Processing...';
-  hideError();
-
-  try {
-    const result = await stripe.confirmPayment({
-      elements,
-      redirect: 'if_required',
-      confirmParams: {
-        payment_method_data: { billing_details: { name } }
-      }
-    });
-
-    if (result.error) {
-      showError(result.error.message);
-      btn.disabled = false;
-      btn.textContent = 'Pay →';
-      return;
-    }
-
-    // Confirm with backend
-    const confirm = await fetch('/api/booking/' + bookingId + '/confirm/' + memberId, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const confirmData = await confirm.json();
-
-    // Show success inline
-    document.getElementById('pay-body').innerHTML = `
-      <div class="success-wrap">
-        <div class="success-icon">✓</div>
-        <h3 style="font-size:18px;margin-bottom:8px;">Payment confirmed!</h3>
-        <p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:8px;">Your share is held securely. The booking confirms automatically once everyone pays.</p>
-        <p style="font-size:13px;color:#666;">${confirmData.paidCount} of ${confirmData.groupSize} people have now paid.</p>
-        ${confirmData.allPaid ? '<p style="font-size:13px;color:#1D9E75;font-weight:500;margin-top:8px;">All paid — booking confirmed!</p>' : ''}
-        <a href="/?booking=${bookingId}" class="back-btn">Back to dashboard →</a>
-      </div>
-    `;
-
-  } catch (err) {
-    showError('Payment failed: ' + err.message);
-    btn.disabled = false;
-    btn.textContent = 'Pay →';
-  }
+function showError(msg){
+  document.querySelector('.spinner').style.display='none';
+  document.querySelector('.loading').style.display='none';
+  const e=document.getElementById('error');
+  e.textContent=msg;e.style.display='block';
 }
-
-function showError(msg) {
-  const el = document.getElementById('error-msg');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
-function hideError() {
-  const el = document.getElementById('error-msg');
-  if (el) el.style.display = 'none';
-}
-
 init();
 </script>
 </body>
