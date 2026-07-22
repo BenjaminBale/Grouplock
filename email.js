@@ -77,6 +77,20 @@ async function sendBookingCancelled({ to, propertyName, wasPaid }) {
   });
 }
 
+async function sendMerchantApprovalNeeded({ to, propertyName, totalAmount, currency, deadline, dashboardUrl }) {
+  const amount = (totalAmount / 100).toFixed(2);
+  await send({
+    to,
+    subject: `Action needed: confirm availability for ${propertyName}`,
+    html: wrap(`
+      <p>Everyone in the group has paid for <strong>${propertyName}</strong> — ${currency.toUpperCase()} ${amount} collected.</p>
+      <p>Please confirm whether this property is still available. If you accept, the funds transfer to your account. If you deny, guests are refunded automatically.</p>
+      <p><a href="${dashboardUrl}" style="display:inline-block;background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:500;">Review and respond</a></p>
+      <p style="color:#888;font-size:12px;">If we don't hear back by ${deadline}, guests will be refunded automatically.</p>
+    `)
+  });
+}
+
 async function sendMerchantLoginLink({ to, loginUrl }) {
   await send({
     to,
@@ -89,4 +103,4 @@ async function sendMerchantLoginLink({ to, loginUrl }) {
   });
 }
 
-module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendBookingCancelled, sendMerchantLoginLink };
+module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendBookingCancelled, sendMerchantLoginLink, sendMerchantApprovalNeeded };

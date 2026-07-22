@@ -5,7 +5,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const { pool, initDb } = require('./db');
-const { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed } = require('./email');
+const { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendMerchantApprovalNeeded } = require('./email');
+const { sweepExpiredApprovals } = require('./bookings');
 const merchantRoutes = require('./routes/merchant');
 
 const app = express();
@@ -17,7 +18,7 @@ app.use('/api/merchant', merchantRoutes);
 
 app.post('/api/booking/create', async (req, res) => {
   try {
-    const { propertyName, totalAmount, groupSize, currency = 'gbp', organiserEmail, merchantKey } = req.body;
+    const { propertyName, totalAmount, groupSize, currency = 'gbp', organiserEmail, merchantKey, merchantResponseHours = 48 } = req.body;
     const bookingId = uuidv4();
     const shareAmount = Math.round(totalAmount / groupSize);
 
@@ -28,9 +29,9 @@ app.post('/api/booking/create', async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO bookings (id, property_name, total_amount, share_amount, currency, group_size, status, merchant_id)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)`,
-      [bookingId, propertyName, totalAmount, shareAmount, currency, groupSize, merchantId]
+      `INSERT INTO bookings (id, property_name, total_amount, share_amount, currency, group_size, status, merchant_id, merchant_response_hours)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)`,
+      [bookingId, propertyName, totalAmount, shareAmount, currency, groupSize, merchantId, merchantResponseHours]
     );
 
     const members = [];
@@ -101,6 +102,7 @@ app.get('/api/booking/:id', async (req, res) => {
       bookingId: b.id, propertyName: b.property_name,
       totalAmount: b.total_amount / 100, shareAmount: b.share_amount / 100,
       groupSize: b.group_size, paidCount, status: b.status,
+      awaitingSince: b.awaiting_since, merchantResponseHours: b.merchant_response_hours,
       members: membersResult.rows
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -119,30 +121,19 @@ app.post('/api/booking/:bookingId/payment-intent/:memberId', async (req, res) =>
     if (!member) return res.status(404).json({ error: 'Member not found' });
     if (member.paid) return res.status(400).json({ error: 'Already paid' });
 
-    let merchant = null;
-    if (b.merchant_id) {
-      const merchantResult = await pool.query('SELECT * FROM merchants WHERE id = $1', [b.merchant_id]);
-      merchant = merchantResult.rows[0] || null;
-    }
-
     let intent;
     if (member.payment_intent_id) {
       intent = await stripe.paymentIntents.retrieve(member.payment_intent_id);
       if (intent.status === 'canceled') intent = null;
     }
     if (!intent) {
-      const params = {
+      intent = await stripe.paymentIntents.create({
         amount: b.share_amount,
         currency: b.currency,
         automatic_payment_methods: { enabled: true },
         description: `Grouple: ${b.property_name} — 1 of ${b.group_size} shares`,
         metadata: { bookingId, memberId }
-      };
-      if (merchant && merchant.stripe_onboarding_complete) {
-        params.transfer_data = { destination: merchant.stripe_account_id };
-        params.application_fee_amount = Math.round(b.share_amount * 0.015);
-      }
-      intent = await stripe.paymentIntents.create(params);
+      });
       await pool.query('UPDATE members SET payment_intent_id = $1 WHERE id = $2', [intent.id, memberId]);
     }
 
@@ -176,14 +167,32 @@ app.get('/api/booking/:bookingId/confirm/:memberId', async (req, res) => {
     const paidCount = parseInt(countResult.rows[0].count, 10);
 
     let status = b.status;
-    if (paidCount === b.group_size && status !== 'complete') {
-      status = 'complete';
-      await pool.query('UPDATE bookings SET status = $1 WHERE id = $2', [status, bookingId]);
+    if (paidCount === b.group_size && status === 'pending') {
+      if (b.merchant_id) {
+        status = 'awaiting_merchant_approval';
+        const awaitingSince = new Date();
+        await pool.query('UPDATE bookings SET status = $1, awaiting_since = $2 WHERE id = $3', [status, awaitingSince, bookingId]);
 
-      const emailedResult = await pool.query('SELECT email FROM members WHERE booking_id = $1 AND email IS NOT NULL', [bookingId]);
-      for (const row of emailedResult.rows) {
-        sendBookingConfirmed({ to: row.email, propertyName: b.property_name })
-          .catch(err => console.error('Failed to send confirmation email:', err.message));
+        const merchantResult = await pool.query('SELECT * FROM merchants WHERE id = $1', [b.merchant_id]);
+        const merchant = merchantResult.rows[0];
+        if (merchant) {
+          const deadline = new Date(awaitingSince.getTime() + b.merchant_response_hours * 60 * 60 * 1000);
+          sendMerchantApprovalNeeded({
+            to: merchant.email, propertyName: b.property_name,
+            totalAmount: b.total_amount, currency: b.currency,
+            deadline: deadline.toUTCString(),
+            dashboardUrl: `${process.env.BASE_URL}/merchant/dashboard.html`
+          }).catch(err => console.error('Failed to send merchant approval email:', err.message));
+        }
+      } else {
+        status = 'complete';
+        await pool.query('UPDATE bookings SET status = $1 WHERE id = $2', [status, bookingId]);
+
+        const emailedResult = await pool.query('SELECT email FROM members WHERE booking_id = $1 AND email IS NOT NULL', [bookingId]);
+        for (const row of emailedResult.rows) {
+          sendBookingConfirmed({ to: row.email, propertyName: b.property_name })
+            .catch(err => console.error('Failed to send confirmation email:', err.message));
+        }
       }
     }
 
@@ -196,6 +205,9 @@ initDb()
     app.listen(process.env.PORT, '0.0.0.0', () => {
       console.log('\n  Grouple MVP running\n  Open: http://localhost:3000\n');
     });
+    setInterval(() => {
+      sweepExpiredApprovals().catch(err => console.error('Sweep failed:', err.message));
+    }, 15 * 60 * 1000);
   })
   .catch(err => {
     console.error('Failed to initialize database:', err);

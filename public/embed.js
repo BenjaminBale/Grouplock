@@ -36,8 +36,9 @@
     + '.gl-summary{display:flex;justify-content:space-between;font-size:12px;color:#0d6e52;padding:3px 0;}'
     + '.gl-summary strong{font-weight:600;}'
     + '.gl-note{font-size:11px;color:#0f6e56;margin:8px 0;line-height:1.5;}'
-    + 'input{width:100%;border:1.5px solid #cdeee0;border-radius:8px;padding:9px 11px;font-size:13px;margin:8px 0;outline:none;font-family:inherit;}'
-    + 'input:focus{border-color:#1D9E75;}'
+    + 'input,select{width:100%;border:1.5px solid #cdeee0;border-radius:8px;padding:9px 11px;font-size:13px;margin:8px 0;outline:none;font-family:inherit;background:white;}'
+    + 'input:focus,select:focus{border-color:#1D9E75;}'
+    + 'label{font-size:11px;color:#0f6e56;display:block;margin-top:6px;}'
     + 'button.gl-cta{display:block;width:100%;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;background:#1D9E75;color:white;}'
     + 'button.gl-cta:hover{background:#178a65;}'
     + 'button.gl-cta:disabled{opacity:.6;cursor:not-allowed;}'
@@ -57,6 +58,13 @@
     + '  <div class="gl-summary"><span>Total</span><strong>' + symbol + (totalAmount / 100).toLocaleString() + '</strong></div>'
     + '  <div class="gl-note">Booking confirms only when everyone pays. If the group doesn\'t fill, everyone is refunded automatically.</div>'
     + '  <input type="email" id="gl-email" placeholder="Your email (for your dashboard link)" />'
+    + '  <label for="gl-response-window">If the group fully pays, how long should the host have to confirm?</label>'
+    + '  <select id="gl-response-window">'
+    + '    <option value="24">24 hours</option>'
+    + '    <option value="48" selected>48 hours</option>'
+    + '    <option value="72">72 hours</option>'
+    + '    <option value="168">1 week</option>'
+    + '  </select>'
     + '  <button type="button" class="gl-cta" id="gl-submit">Start group payment →</button>'
     + '  <div class="gl-error" id="gl-error"></div>'
     + '</div>';
@@ -86,11 +94,12 @@
     submitBtn.textContent = 'Setting up...';
 
     var organiserEmail = root.getElementById('gl-email').value.trim() || undefined;
+    var merchantResponseHours = parseInt(root.getElementById('gl-response-window').value, 10);
 
     fetch(apiBase + '/api/booking/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ propertyName: propertyName, totalAmount: totalAmount, groupSize: people, currency: currency, organiserEmail: organiserEmail, merchantKey: merchantKey })
+      body: JSON.stringify({ propertyName: propertyName, totalAmount: totalAmount, groupSize: people, currency: currency, organiserEmail: organiserEmail, merchantKey: merchantKey, merchantResponseHours: merchantResponseHours })
     })
       .then(function (res) { return res.json(); })
       .then(function (result) {

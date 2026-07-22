@@ -47,9 +47,15 @@ async function confirmPayment() {
       document.getElementById('detail-display').textContent =
         data.paidCount + ' of ' + data.groupSize + ' people have now paid.';
 
-      if (data.status === 'complete') {
+      if (data.status === 'awaiting_merchant_approval') {
+        document.getElementById('detail-display').textContent = 'All ' + data.groupSize + ' people paid! Waiting for the host to confirm availability — you\'ll get an email once it\'s confirmed.';
+        document.getElementById('detail-display').style.color = '#2b3f9e';
+      } else if (data.status === 'complete') {
         document.getElementById('detail-display').textContent = 'All ' + data.groupSize + ' people paid — booking confirmed!';
         document.getElementById('detail-display').style.color = '#1D9E75';
+      } else if (data.status === 'cancelled') {
+        document.getElementById('detail-display').textContent = 'This booking is no longer available. You\'ve been refunded automatically.';
+        document.getElementById('detail-display').style.color = '#c0392b';
       }
     }
 

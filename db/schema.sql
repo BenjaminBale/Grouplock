@@ -47,3 +47,5 @@ CREATE TABLE IF NOT EXISTS merchant_sessions (
 );
 
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS merchant_id UUID REFERENCES merchants(id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS merchant_response_hours INTEGER NOT NULL DEFAULT 48;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS awaiting_since TIMESTAMPTZ;

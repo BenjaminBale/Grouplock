@@ -30,9 +30,13 @@ pre{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px;font
 .booking-sub{font-size:11px;color:#888;margin-top:2px;}
 .status-pill{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500;}
 .status-pending{background:#fff8e6;color:#854f0b;}
+.status-awaiting_merchant_approval{background:#e8ecfb;color:#2b3f9e;}
 .status-complete{background:#e0f5ec;color:#0d6e52;}
 .status-cancelled{background:#f5f5f5;color:#888;}
 .empty{font-size:13px;color:#888;text-align:center;padding:20px 0;}
+.btn-accept{background:#1D9E75;color:white;}
+.btn-accept:hover{background:#178a65;}
+.respond-by{font-size:10px;color:#888;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -117,10 +121,15 @@ async function loadBookings() {
       <div>
         <div class="booking-name">${b.propertyName}</div>
         <div class="booking-sub">${b.paidCount}/${b.groupSize} paid · £${b.shareAmount} each · £${b.totalAmount} total</div>
+        ${b.respondBy ? `<div class="respond-by">Respond by ${new Date(b.respondBy).toLocaleString()}</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span class="status-pill status-${b.status}">${b.status}</span>
+        <span class="status-pill status-${b.status}">${b.status.replace(/_/g, ' ')}</span>
         ${b.status === 'pending' ? `<button class="btn btn-small btn-danger" onclick="markUnavailable('${b.bookingId}', this)">Mark unavailable</button>` : ''}
+        ${b.status === 'awaiting_merchant_approval' ? `
+          <button class="btn btn-small btn-danger" onclick="respondToBooking('${b.bookingId}', 'deny', this)">Deny</button>
+          <button class="btn btn-small btn-accept" onclick="respondToBooking('${b.bookingId}', 'accept', this)">Accept</button>
+        ` : ''}
       </div>
     </div>
   `).join('');
@@ -139,6 +148,25 @@ async function markUnavailable(bookingId, btn) {
     alert('Error: ' + err.message);
     btn.disabled = false;
     btn.textContent = 'Mark unavailable';
+  }
+}
+
+async function respondToBooking(bookingId, action, btn) {
+  const confirmMsg = action === 'accept'
+    ? 'This transfers the collected funds (minus Grouple\'s fee) to your Stripe account and confirms the booking. Are you sure this property is available?'
+    : 'This refunds everyone who has paid and cancels the booking. Are you sure?';
+  if (!confirm(confirmMsg)) return;
+
+  btn.disabled = true;
+  btn.textContent = action === 'accept' ? 'Accepting...' : 'Denying...';
+  try {
+    const res = await fetch('/api/merchant/bookings/' + bookingId + '/' + action, { method: 'POST' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    loadBookings();
+  } catch (err) {
+    alert('Error: ' + err.message);
+    loadBookings();
   }
 }
 

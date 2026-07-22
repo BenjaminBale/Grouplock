@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const { pool } = require('../db');
 const { createSession, requireMerchant, SESSION_COOKIE } = require('../merchant-auth');
 const { sendMerchantLoginLink } = require('../email');
-const { cancelBooking } = require('../bookings');
+const { cancelBooking, acceptBooking } = require('../bookings');
 
 const router = express.Router();
 
@@ -134,6 +134,10 @@ router.get('/bookings', requireMerchant, async (req, res) => {
     const bookings = [];
     for (const b of bookingsResult.rows) {
       const countResult = await pool.query('SELECT count(*) FROM members WHERE booking_id = $1 AND paid = true', [b.id]);
+      let respondBy = null;
+      if (b.status === 'awaiting_merchant_approval' && b.awaiting_since) {
+        respondBy = new Date(new Date(b.awaiting_since).getTime() + b.merchant_response_hours * 60 * 60 * 1000);
+      }
       bookings.push({
         bookingId: b.id,
         propertyName: b.property_name,
@@ -142,7 +146,8 @@ router.get('/bookings', requireMerchant, async (req, res) => {
         groupSize: b.group_size,
         paidCount: parseInt(countResult.rows[0].count, 10),
         status: b.status,
-        createdAt: b.created_at
+        createdAt: b.created_at,
+        respondBy
       });
     }
     res.json({ bookings });
@@ -155,6 +160,30 @@ router.post('/bookings/:bookingId/mark-unavailable', requireMerchant, async (req
     const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1 AND merchant_id = $2', [bookingId, req.merchant.id]);
     if (!bookingResult.rows[0]) return res.status(404).json({ error: 'Booking not found' });
     if (bookingResult.rows[0].status !== 'pending') return res.status(400).json({ error: 'Booking is not pending' });
+
+    await cancelBooking(bookingId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/bookings/:bookingId/accept', requireMerchant, async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1 AND merchant_id = $2', [bookingId, req.merchant.id]);
+    if (!bookingResult.rows[0]) return res.status(404).json({ error: 'Booking not found' });
+    if (bookingResult.rows[0].status !== 'awaiting_merchant_approval') return res.status(400).json({ error: 'Booking is not awaiting approval' });
+
+    await acceptBooking(bookingId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/bookings/:bookingId/deny', requireMerchant, async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1 AND merchant_id = $2', [bookingId, req.merchant.id]);
+    if (!bookingResult.rows[0]) return res.status(404).json({ error: 'Booking not found' });
+    if (bookingResult.rows[0].status !== 'awaiting_merchant_approval') return res.status(400).json({ error: 'Booking is not awaiting approval' });
 
     await cancelBooking(bookingId);
     res.json({ success: true });

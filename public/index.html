@@ -179,6 +179,13 @@ input:focus{border-color:#1D9E75;}
           <div class="gl-row"><span>Total</span><span>£2,000</span></div>
           <div class="gl-note">Booking confirms only when all <span id="confirm-n">9</span> people pay. If the group doesn't fill, everyone is refunded automatically.</div>
           <input type="email" id="organiser-email" placeholder="Your email (for your dashboard link)" style="margin-top:10px;margin-bottom:0;" />
+          <div style="font-size:11px;color:#0f6e56;margin-top:8px;">If the group fully pays, how long should the host have to confirm?</div>
+          <select id="response-window" style="width:100%;border:1.5px solid #9fe1cb;border-radius:8px;padding:9px 11px;font-size:13px;margin-top:4px;background:white;font-family:inherit;">
+            <option value="24">24 hours</option>
+            <option value="48" selected>48 hours</option>
+            <option value="72">72 hours</option>
+            <option value="168">1 week</option>
+          </select>
         </div>
 
         <button class="btn btn-green" id="checkout-btn" onclick="createBooking()">Invite my group →</button>
@@ -203,6 +210,7 @@ input:focus{border-color:#1D9E75;}
         <div style="font-size:11px;color:#888;margin-bottom:4px;">Pool progress</div>
         <div class="pool-track"><div class="pool-fill" id="d-bar" style="width:0%"></div></div>
         <div style="font-size:11px;color:#888;margin-bottom:16px;" id="d-pct">0% collected</div>
+        <div id="d-awaiting-banner" style="display:none;background:#eef0fb;border:1px solid #ccd2f5;border-radius:8px;padding:12px;font-size:12px;color:#2b3f9e;margin-bottom:16px;"></div>
 
         <div style="font-size:12px;font-weight:500;margin-bottom:10px;">Group members</div>
         <div id="d-member-list"></div>
@@ -362,10 +370,11 @@ async function createBooking() {
 
   try {
     const organiserEmail = document.getElementById('organiser-email').value.trim() || undefined;
+    const merchantResponseHours = parseInt(document.getElementById('response-window').value, 10);
     const res = await fetch('/api/booking/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ propertyName: 'Villa das Pedras, Algarve', totalAmount: TOTAL, groupSize: people, currency: 'gbp', deadlineHours: 48, organiserEmail })
+      body: JSON.stringify({ propertyName: 'Villa das Pedras, Algarve', totalAmount: TOTAL, groupSize: people, currency: 'gbp', merchantResponseHours, organiserEmail })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
@@ -427,10 +436,25 @@ async function refreshDashboard() {
 
   renderInvites(data);
 
+  const awaitingBanner = document.getElementById('d-awaiting-banner');
+  if (data.status === 'awaiting_merchant_approval') {
+    awaitingBanner.style.display = 'block';
+    awaitingBanner.textContent = 'Everyone has paid! Waiting for ' + data.propertyName + ' to confirm availability. You\'ll get an email as soon as it\'s confirmed.';
+  } else {
+    awaitingBanner.style.display = 'none';
+  }
+
   if (data.status === 'complete') {
     clearInterval(refreshInterval);
     enableTab('confirmed');
     showConfirmed(data);
+  } else if (data.status === 'cancelled') {
+    clearInterval(refreshInterval);
+    awaitingBanner.style.display = 'block';
+    awaitingBanner.style.background = '#fef5f5';
+    awaitingBanner.style.borderColor = '#f0c4bc';
+    awaitingBanner.style.color = '#c0392b';
+    awaitingBanner.textContent = 'This booking is no longer available. Anyone who paid has been refunded automatically.';
   }
 }
 
