@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grouple · Pay your share</title>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -11,14 +12,21 @@ body{font-family:-apple-system,sans-serif;background:#f5f5f5;min-height:100vh;di
 .header{background:#1D9E75;padding:20px 24px;color:white;}
 .header h2{font-size:16px;margin-bottom:4px;}
 .header p{font-size:12px;opacity:.85;}
-.body{padding:22px 24px;text-align:center;}
-.share-box{background:#f0faf6;border:1px solid #9fe1cb;border-radius:8px;padding:16px;margin-bottom:16px;}
+.body{padding:22px 24px;}
+.share-box{background:#f0faf6;border:1px solid #9fe1cb;border-radius:8px;padding:16px;margin-bottom:16px;text-align:center;}
 .share-amount{font-size:32px;font-weight:700;color:#0d6e52;margin:4px 0;}
 .share-label,.share-sub{font-size:11px;color:#0f6e56;}
-.spinner{width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+input{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;outline:none;font-family:inherit;}
+input:focus{border-color:#1D9E75;}
+#payment-element{margin:10px 0;min-height:32px;}
+.stripe-loading{display:flex;align-items:center;gap:10px;font-size:13px;color:#888;padding:24px;background:#f9f9f9;border-radius:8px;border:1px solid #eee;}
+.spinner{width:20px;height:20px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading{font-size:14px;color:#666;margin:20px 0;}
-.error{color:#c0392b;font-size:13px;margin-top:12px;display:none;}
+.error{color:#c0392b;font-size:12px;margin-top:6px;padding:8px;background:#fef5f5;border-radius:6px;display:none;}
+.btn{display:block;width:100%;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;margin-top:14px;background:#1D9E75;color:white;}
+.btn:hover{background:#178a65;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.hint{font-size:11px;color:#aaa;text-align:center;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -30,33 +38,89 @@ body{font-family:-apple-system,sans-serif;background:#f5f5f5;min-height:100vh;di
       <div class="share-amount" id="amount">Loading...</div>
       <div class="share-sub">Held securely · refunded if group doesn't fill</div>
     </div>
-    <div class="spinner"></div>
-    <div class="loading">Redirecting to secure payment...</div>
+    <input type="text" id="p-name" placeholder="Your name" />
+    <input type="email" id="p-email" placeholder="Your email (for receipt)" />
+    <div id="payment-element"><div class="stripe-loading"><div class="spinner"></div>Loading secure payment form...</div></div>
     <div class="error" id="error"></div>
+    <button class="btn" id="pay-btn" onclick="submitPay()" disabled>Loading payment form...</button>
+    <div class="hint">🔒 Secured by Stripe · held until your group completes</div>
   </div>
 </div>
 <script>
-const p=new URLSearchParams(window.location.search);
-const bookingId=p.get('booking');
-const memberId=p.get('member');
-async function init(){
-  if(!bookingId||!memberId){showError('Invalid invite link.');return;}
-  try{
-    const s=await fetch('/api/booking/'+bookingId);
-    const sd=await s.json();
-    if(sd.shareAmount)document.getElementById('amount').textContent='£'+sd.shareAmount;
-    const res=await fetch('/api/booking/'+bookingId+'/checkout/'+memberId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
-    const data=await res.json();
-    if(data.error)throw new Error(data.error);
-    window.location.href=data.url;
-  }catch(err){showError('Error: '+err.message);}
+const p = new URLSearchParams(window.location.search);
+const bookingId = p.get('booking');
+const memberId = p.get('member');
+let stripeInstance = null;
+let elements = null;
+
+async function init() {
+  if (!bookingId || !memberId) { showError('Invalid invite link.'); return; }
+  try {
+    const bookingRes = await fetch('/api/booking/' + bookingId);
+    const bookingData = await bookingRes.json();
+    if (bookingData.error) throw new Error(bookingData.error);
+    if (bookingData.shareAmount) document.getElementById('amount').textContent = '£' + bookingData.shareAmount;
+
+    const piRes = await fetch('/api/booking/' + bookingId + '/payment-intent/' + memberId, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    });
+    const piData = await piRes.json();
+    if (piData.error) throw new Error(piData.error);
+
+    stripeInstance = Stripe(piData.publishableKey);
+    elements = stripeInstance.elements({ clientSecret: piData.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#1D9E75' } } });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = false;
+    btn.textContent = 'Pay £' + bookingData.shareAmount + ' →';
+  } catch (err) {
+    showError('Error: ' + err.message);
+  }
 }
-function showError(msg){
-  document.querySelector('.spinner').style.display='none';
-  document.querySelector('.loading').style.display='none';
-  const e=document.getElementById('error');
-  e.textContent=msg;e.style.display='block';
+
+async function submitPay() {
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  document.getElementById('error').style.display = 'none';
+
+  const name = document.getElementById('p-name').value || undefined;
+  const email = document.getElementById('p-email').value || undefined;
+
+  try {
+    const result = await stripeInstance.confirmPayment({
+      elements,
+      redirect: 'if_required',
+      confirmParams: {
+        return_url: window.location.origin + '/success.html?booking=' + bookingId + '&member=' + memberId,
+        payment_method_data: { billing_details: { name, email } },
+        receipt_email: email
+      }
+    });
+
+    if (result.error) {
+      showError(result.error.message);
+      btn.disabled = false;
+      btn.textContent = 'Try again →';
+      return;
+    }
+
+    await fetch('/api/booking/' + bookingId + '/confirm/' + memberId);
+    window.location.href = '/success.html?booking=' + bookingId + '&member=' + memberId;
+  } catch (err) {
+    showError('Payment failed: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Try again →';
+  }
 }
+
+function showError(msg) {
+  const e = document.getElementById('error');
+  e.textContent = msg; e.style.display = 'block';
+}
+
 init();
 </script>
 </body>

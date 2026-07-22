@@ -44,7 +44,7 @@ app.get('/api/booking/:id', (req, res) => {
   });
 });
 
-app.post('/api/booking/:bookingId/checkout/:memberId', async (req, res) => {
+app.post('/api/booking/:bookingId/payment-intent/:memberId', async (req, res) => {
   try {
     const { bookingId, memberId } = req.params;
     const b = bookings[bookingId];
@@ -52,15 +52,29 @@ app.post('/api/booking/:bookingId/checkout/:memberId', async (req, res) => {
     const member = b.members.find(m => m.memberId === memberId);
     if (!member) return res.status(404).json({ error: 'Member not found' });
     if (member.paid) return res.status(400).json({ error: 'Already paid' });
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [{ price_data: { currency: b.currency, product_data: { name: `Grouple: ${b.propertyName}`, description: `Your share — 1 of ${b.groupSize} people` }, unit_amount: b.shareAmount }, quantity: 1 }],
-      success_url: `${process.env.BASE_URL}/success.html?booking=${bookingId}&member=${memberId}`,
-      cancel_url: `${process.env.BASE_URL}/?booking=${bookingId}`,
-      metadata: { bookingId, memberId }
+
+    let intent;
+    if (member.paymentIntentId) {
+      intent = await stripe.paymentIntents.retrieve(member.paymentIntentId);
+      if (intent.status === 'canceled') intent = null;
+    }
+    if (!intent) {
+      intent = await stripe.paymentIntents.create({
+        amount: b.shareAmount,
+        currency: b.currency,
+        automatic_payment_methods: { enabled: true },
+        description: `Grouple: ${b.propertyName} — 1 of ${b.groupSize} shares`,
+        metadata: { bookingId, memberId }
+      });
+      member.paymentIntentId = intent.id;
+    }
+
+    res.json({
+      clientSecret: intent.client_secret,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+      amount: b.shareAmount,
+      currency: b.currency
     });
-    member.sessionId = session.id;
-    res.json({ url: session.url });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -71,12 +85,12 @@ app.get('/api/booking/:bookingId/confirm/:memberId', async (req, res) => {
     if (!b) return res.status(404).json({ error: 'Not found' });
     const member = b.members.find(m => m.memberId === memberId);
     if (!member) return res.status(404).json({ error: 'Not found' });
-    if (member.sessionId && !member.paid) {
-      const session = await stripe.checkout.sessions.retrieve(member.sessionId);
-      if (session.payment_status === 'paid') {
+    if (member.paymentIntentId && !member.paid) {
+      const intent = await stripe.paymentIntents.retrieve(member.paymentIntentId, { expand: ['payment_method'] });
+      if (intent.status === 'succeeded') {
         member.paid = true;
         member.paidAt = new Date();
-        member.name = session.customer_details?.name || 'Group member';
+        member.name = intent.payment_method?.billing_details?.name || member.name || 'Group member';
         b.paidCount = b.members.filter(m => m.paid).length;
         if (b.paidCount === b.groupSize) { b.status = 'complete'; }
       }
