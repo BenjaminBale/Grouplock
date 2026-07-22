@@ -434,6 +434,16 @@ async function refreshDashboard() {
   }
 }
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function shareLinksFor(memberId, data) {
+  const payUrl = `${window.location.origin}/pay.html?booking=${data.bookingId}&member=${memberId}`;
+  const message = `You're invited to split payment for ${data.propertyName}. Your share is £${data.shareAmount}. Pay here: ${payUrl}`;
+  const smsHref = (isIOS ? 'sms:&body=' : 'sms:?body=') + encodeURIComponent(message);
+  const mailHref = `mailto:?subject=${encodeURIComponent('Pay your share for ' + data.propertyName)}&body=${encodeURIComponent(message)}`;
+  return { smsHref, mailHref };
+}
+
 function renderInvites(data) {
   const list = document.getElementById('d-invite-list');
   const rows = data.members.map((m, i) => {
@@ -443,12 +453,17 @@ function renderInvites(data) {
     }
     const val = inviteDrafts[m.memberId] !== undefined ? inviteDrafts[m.memberId] : (m.email || '');
     const sentTag = m.email ? `<div style="font-size:10px;color:#0d6e52;margin-top:4px;">Invited: ${m.email}</div>` : '';
+    const { smsHref, mailHref } = shareLinksFor(m.memberId, data);
     return `
       <div style="margin-bottom:12px;">
         <div style="font-size:12px;color:#666;margin-bottom:4px;">Slot ${i + 1}</div>
         <div class="link-box">
           <input type="email" placeholder="their email" value="${val}" oninput="inviteDrafts['${m.memberId}']=this.value" id="invite-input-${m.memberId}" />
           <button onclick="sendInvite('${m.memberId}', this)">${m.email ? 'Resend' : 'Send'}</button>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:6px;">
+          <a href="${smsHref}" style="font-size:11px;color:#0d6e52;text-decoration:none;">💬 Share via Messages</a>
+          <a href="${mailHref}" style="font-size:11px;color:#0d6e52;text-decoration:none;">✉️ Share via Mail</a>
         </div>
         ${sentTag}
       </div>`;
