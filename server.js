@@ -1,26 +1,36 @@
 require('dotenv').config();
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const { pool, initDb } = require('./db');
 const { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed } = require('./email');
+const merchantRoutes = require('./routes/merchant');
 
 const app = express();
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
+app.use(cookieParser());
+app.use('/api/merchant', merchantRoutes);
 
 app.post('/api/booking/create', async (req, res) => {
   try {
-    const { propertyName, totalAmount, groupSize, currency = 'gbp', organiserEmail } = req.body;
+    const { propertyName, totalAmount, groupSize, currency = 'gbp', organiserEmail, merchantKey } = req.body;
     const bookingId = uuidv4();
     const shareAmount = Math.round(totalAmount / groupSize);
 
+    let merchantId = null;
+    if (merchantKey) {
+      const merchantResult = await pool.query('SELECT id FROM merchants WHERE embed_key = $1', [merchantKey]);
+      merchantId = merchantResult.rows[0]?.id || null;
+    }
+
     await pool.query(
-      `INSERT INTO bookings (id, property_name, total_amount, share_amount, currency, group_size, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
-      [bookingId, propertyName, totalAmount, shareAmount, currency, groupSize]
+      `INSERT INTO bookings (id, property_name, total_amount, share_amount, currency, group_size, status, merchant_id)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)`,
+      [bookingId, propertyName, totalAmount, shareAmount, currency, groupSize, merchantId]
     );
 
     const members = [];
@@ -102,11 +112,18 @@ app.post('/api/booking/:bookingId/payment-intent/:memberId', async (req, res) =>
     const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1', [bookingId]);
     const b = bookingResult.rows[0];
     if (!b) return res.status(404).json({ error: 'Booking not found' });
+    if (b.status !== 'pending') return res.status(400).json({ error: 'This booking is no longer available' });
 
     const memberResult = await pool.query('SELECT * FROM members WHERE id = $1 AND booking_id = $2', [memberId, bookingId]);
     const member = memberResult.rows[0];
     if (!member) return res.status(404).json({ error: 'Member not found' });
     if (member.paid) return res.status(400).json({ error: 'Already paid' });
+
+    let merchant = null;
+    if (b.merchant_id) {
+      const merchantResult = await pool.query('SELECT * FROM merchants WHERE id = $1', [b.merchant_id]);
+      merchant = merchantResult.rows[0] || null;
+    }
 
     let intent;
     if (member.payment_intent_id) {
@@ -114,13 +131,18 @@ app.post('/api/booking/:bookingId/payment-intent/:memberId', async (req, res) =>
       if (intent.status === 'canceled') intent = null;
     }
     if (!intent) {
-      intent = await stripe.paymentIntents.create({
+      const params = {
         amount: b.share_amount,
         currency: b.currency,
         automatic_payment_methods: { enabled: true },
         description: `Grouple: ${b.property_name} — 1 of ${b.group_size} shares`,
         metadata: { bookingId, memberId }
-      });
+      };
+      if (merchant && merchant.stripe_onboarding_complete) {
+        params.transfer_data = { destination: merchant.stripe_account_id };
+        params.application_fee_amount = Math.round(b.share_amount * 0.015);
+      }
+      intent = await stripe.paymentIntents.create(params);
       await pool.query('UPDATE members SET payment_intent_id = $1 WHERE id = $2', [intent.id, memberId]);
     }
 

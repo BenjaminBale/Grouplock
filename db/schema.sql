@@ -22,3 +22,28 @@ CREATE TABLE IF NOT EXISTS members (
 );
 
 CREATE INDEX IF NOT EXISTS idx_members_booking_id ON members(booking_id);
+
+CREATE TABLE IF NOT EXISTS merchants (
+  id UUID PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  embed_key TEXT UNIQUE NOT NULL,
+  stripe_account_id TEXT,
+  stripe_onboarding_complete BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS merchant_login_links (
+  token TEXT PRIMARY KEY,
+  merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS merchant_sessions (
+  token TEXT PRIMARY KEY,
+  merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS merchant_id UUID REFERENCES merchants(id);

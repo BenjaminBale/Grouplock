@@ -6,6 +6,7 @@
   var propertyName = data.propertyName || 'Your booking';
   var totalAmount = Math.round(parseFloat(data.totalAmount || '0') * 100);
   var currency = (data.currency || 'gbp').toLowerCase();
+  var merchantKey = data.merchantKey || undefined;
   var minPeople = parseInt(data.minPeople || '2', 10);
   var maxPeople = parseInt(data.maxPeople || '20', 10);
   var defaultPeople = Math.min(Math.max(parseInt(data.defaultPeople || '2', 10), minPeople), maxPeople);
@@ -89,7 +90,7 @@
     fetch(apiBase + '/api/booking/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ propertyName: propertyName, totalAmount: totalAmount, groupSize: people, currency: currency, organiserEmail: organiserEmail })
+      body: JSON.stringify({ propertyName: propertyName, totalAmount: totalAmount, groupSize: people, currency: currency, organiserEmail: organiserEmail, merchantKey: merchantKey })
     })
       .then(function (res) { return res.json(); })
       .then(function (result) {

@@ -61,6 +61,13 @@ async function init() {
     if (bookingData.error) throw new Error(bookingData.error);
     if (bookingData.shareAmount) document.getElementById('amount').textContent = '£' + bookingData.shareAmount;
 
+    if (bookingData.status === 'cancelled') {
+      document.getElementById('payment-element').innerHTML = '';
+      showError('This booking is no longer available. If you already paid, you\'ll be refunded automatically.');
+      document.getElementById('pay-btn').style.display = 'none';
+      return;
+    }
+
     const piRes = await fetch('/api/booking/' + bookingId + '/payment-intent/' + memberId, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }
     });

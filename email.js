@@ -66,4 +66,27 @@ async function sendBookingConfirmed({ to, propertyName }) {
   });
 }
 
-module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed };
+async function sendBookingCancelled({ to, propertyName, wasPaid }) {
+  await send({
+    to,
+    subject: `Booking cancelled — ${propertyName}`,
+    html: wrap(`
+      <p><strong>${propertyName}</strong> is no longer available, so this group booking has been cancelled.</p>
+      ${wasPaid ? '<p>Your payment has been refunded automatically — it should appear back on your card within a few business days.</p>' : '<p>No payment was taken from you.</p>'}
+    `)
+  });
+}
+
+async function sendMerchantLoginLink({ to, loginUrl }) {
+  await send({
+    to,
+    subject: 'Your Grouple dashboard login link',
+    html: wrap(`
+      <p>Click below to log in to your Grouple merchant dashboard.</p>
+      <p><a href="${loginUrl}" style="display:inline-block;background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:500;">Log in to Grouple</a></p>
+      <p style="color:#888;font-size:12px;">This link expires in 15 minutes. If you didn't request it, you can ignore this email.</p>
+    `)
+  });
+}
+
+module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendBookingCancelled, sendMerchantLoginLink };
