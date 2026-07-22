@@ -178,6 +178,7 @@ input:focus{border-color:#1D9E75;}
           <div class="gl-row"><span>Each person pays</span><span style="font-weight:600;" id="per-head">£222</span></div>
           <div class="gl-row"><span>Total</span><span>£2,000</span></div>
           <div class="gl-note">Booking confirms only when all <span id="confirm-n">9</span> people pay. If the group doesn't fill, everyone is refunded automatically.</div>
+          <input type="email" id="organiser-email" placeholder="Your email (for your dashboard link)" style="margin-top:10px;margin-bottom:0;" />
         </div>
 
         <button class="btn btn-green" id="checkout-btn" onclick="createBooking()">Invite my group →</button>
@@ -217,8 +218,12 @@ input:focus{border-color:#1D9E75;}
         <div class="summary-row"><span style="color:#888">Total</span><span>£2,000</span></div>
       </div>
       <div class="card">
-        <div class="card-title">Invite your group</div>
-        <div class="info-note">Share this link with everyone. Each person pays their own share directly — no chasing needed.</div>
+        <div class="card-title">Email your group</div>
+        <div class="info-note">Send each person their own payment link by email. They pay their share directly — no chasing needed.</div>
+        <div id="d-invite-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Or share a link</div>
         <div class="link-box">
           <input type="text" id="invite-link" readonly />
           <button onclick="copyLink()">Copy</button>
@@ -286,6 +291,7 @@ let stripeInstance = null;
 let stripeElements = null;
 let currentMemberId = null;
 let refreshInterval = null;
+let inviteDrafts = {};
 
 // On page load, check if we're returning from a Stripe payment
 window.addEventListener('DOMContentLoaded', async () => {
@@ -355,10 +361,11 @@ async function createBooking() {
   btn.disabled = true;
 
   try {
+    const organiserEmail = document.getElementById('organiser-email').value.trim() || undefined;
     const res = await fetch('/api/booking/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ propertyName: 'Villa das Pedras, Algarve', totalAmount: TOTAL, groupSize: people, currency: 'gbp', deadlineHours: 48 })
+      body: JSON.stringify({ propertyName: 'Villa das Pedras, Algarve', totalAmount: TOTAL, groupSize: people, currency: 'gbp', deadlineHours: 48, organiserEmail })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
@@ -416,10 +423,56 @@ async function refreshDashboard() {
     </div>
   `).join('');
 
+  renderInvites(data);
+
   if (data.status === 'complete') {
     clearInterval(refreshInterval);
     enableTab('confirmed');
     showConfirmed(data);
+  }
+}
+
+function renderInvites(data) {
+  const list = document.getElementById('d-invite-list');
+  const rows = data.members.map((m, i) => {
+    if (i === 0) return '';
+    if (m.paid) {
+      return `<div class="member-item"><div style="flex:1;font-size:13px;">Slot ${i + 1}${m.name ? ' — ' + m.name : ''}</div><span class="badge badge-paid">✓ Paid</span></div>`;
+    }
+    const val = inviteDrafts[m.memberId] !== undefined ? inviteDrafts[m.memberId] : (m.email || '');
+    const sentTag = m.email ? `<div style="font-size:10px;color:#0d6e52;margin-top:4px;">Invited: ${m.email}</div>` : '';
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;color:#666;margin-bottom:4px;">Slot ${i + 1}</div>
+        <div class="link-box">
+          <input type="email" placeholder="their email" value="${val}" oninput="inviteDrafts['${m.memberId}']=this.value" id="invite-input-${m.memberId}" />
+          <button onclick="sendInvite('${m.memberId}', this)">${m.email ? 'Resend' : 'Send'}</button>
+        </div>
+        ${sentTag}
+      </div>`;
+  }).join('');
+  list.innerHTML = rows || '<div style="font-size:12px;color:#888;">Just you so far — add more people to invite.</div>';
+}
+
+async function sendInvite(memberId, btn) {
+  const input = document.getElementById('invite-input-' + memberId);
+  const email = input.value.trim();
+  if (!email) { alert('Enter an email first'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('/api/booking/' + booking.bookingId + '/members/' + memberId + '/invite', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    delete inviteDrafts[memberId];
+    document.getElementById('d-msg').textContent = 'Invite sent to ' + email;
+    refreshDashboard();
+  } catch (err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Send';
   }
 }
 
@@ -511,6 +564,7 @@ function copyLink() {
 function resetDemo() {
   booking = null;
   people = 9;
+  inviteDrafts = {};
   clearInterval(refreshInterval);
   document.getElementById('pcount').textContent = '9';
   document.getElementById('per-head').textContent = '£222';
