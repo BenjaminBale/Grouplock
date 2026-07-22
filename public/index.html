@@ -211,11 +211,11 @@ input:focus{border-color:#1D9E75;}
     <div>
       <div class="card">
         <div class="card-title">Trip details</div>
-        <div class="summary-row"><span style="color:#888">Property</span><span>Villa das Pedras</span></div>
+        <div class="summary-row"><span style="color:#888">Property</span><span id="d-property">Villa das Pedras</span></div>
         <div class="summary-row"><span style="color:#888">Dates</span><span>14–21 Aug 2025</span></div>
         <div class="summary-row"><span style="color:#888">Guests</span><span id="d-guests">9 people</span></div>
         <div class="summary-row"><span style="color:#888">Each pays</span><span id="d-each">£222</span></div>
-        <div class="summary-row"><span style="color:#888">Total</span><span>£2,000</span></div>
+        <div class="summary-row"><span style="color:#888">Total</span><span id="d-total-amount">£2,000</span></div>
       </div>
       <div class="card">
         <div class="card-title">Email your group</div>
@@ -273,7 +273,7 @@ input:focus{border-color:#1D9E75;}
     <div class="card">
       <div class="success-wrap">
         <div class="success-icon">✓</div>
-        <h2 style="font-size:20px;margin-bottom:8px;">Villa das Pedras is booked!</h2>
+        <h2 style="font-size:20px;margin-bottom:8px;" id="confirm-heading">Villa das Pedras is booked!</h2>
         <p style="font-size:13px;color:#666;margin-bottom:20px;">All group members paid. The hotel has been notified and the booking is confirmed.</p>
         <div style="background:#f9f9f9;border-radius:10px;padding:14px;text-align:left;margin-bottom:16px;" id="confirm-summary"></div>
         <div style="font-size:11px;color:#aaa;">Dropout protection active until trip date · Powered by Grouple</div>
@@ -404,6 +404,8 @@ async function refreshDashboard() {
   document.getElementById('d-pct').textContent = pct + '% collected';
   document.getElementById('d-guests').textContent = data.groupSize + ' people';
   document.getElementById('d-each').textContent = '£' + share;
+  document.getElementById('d-property').textContent = data.propertyName;
+  document.getElementById('d-total-amount').textContent = '£' + data.totalAmount.toLocaleString();
 
   // Pay screen stats
   document.getElementById('p-paid').textContent = paidCount;
@@ -541,8 +543,9 @@ async function submitPay() {
 // ── Confirmed ──────────────────────────────────────────────
 
 function showConfirmed(data) {
+  document.getElementById('confirm-heading').textContent = data.propertyName + ' is booked!';
   document.getElementById('confirm-summary').innerHTML = `
-    <div class="summary-row"><span style="color:#888">Property</span><span>Villa das Pedras</span></div>
+    <div class="summary-row"><span style="color:#888">Property</span><span>${data.propertyName}</span></div>
     <div class="summary-row"><span style="color:#888">Dates</span><span>14–21 Aug 2025</span></div>
     <div class="summary-row"><span style="color:#888">Guests</span><span>${data.groupSize} people</span></div>
     <div class="summary-row"><span style="color:#888">Each paid</span><span>£${data.shareAmount}</span></div>
