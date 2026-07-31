@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service · Grouple</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;line-height:1.6;}
+.topnav{background:#1D9E75;color:white;padding:14px 20px;display:flex;align-items:center;}
+.topnav-brand{font-size:16px;font-weight:600;text-decoration:none;color:white;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+h1{font-size:24px;color:#0d6e52;margin-bottom:6px;}
+.updated{font-size:12px;color:#888;margin-bottom:28px;}
+.notice{background:#fff8e6;border:1px solid #f3d98b;border-radius:8px;padding:14px 16px;font-size:12px;color:#854f0b;margin-bottom:28px;}
+h2{font-size:16px;color:#111;margin:28px 0 8px;}
+p, li{font-size:14px;color:#444;margin-bottom:10px;}
+ul, ol{padding-left:20px;margin-bottom:10px;}
+a{color:#0d6e52;}
+.placeholder{background:#fef5f5;color:#c0392b;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:13px;}
+</style>
+</head>
+<body>
+<div class="topnav"><a href="/" class="topnav-brand">Grouple<span style="color:#e0f5ec;">.</span></a></div>
+<div class="wrap">
+  <h1>Terms of Service</h1>
+  <div class="updated">Last updated: <span class="placeholder">[date]</span></div>
+
+  <div class="notice">
+    This is a working draft written for Grouple's early access period. Replace the bracketed placeholders with your actual company details, and have it reviewed by a solicitor before relying on it for real transactions at scale.
+  </div>
+
+  <h2>1. Who we are</h2>
+  <p>Grouple is operated by <span class="placeholder">[Legal company name]</span>, a company registered in <span class="placeholder">[country]</span> (company number <span class="placeholder">[number]</span>), with a registered address at <span class="placeholder">[address]</span> ("Grouple", "we", "us"). These terms apply whenever you use grouple.app, whether as a guest splitting a payment ("Guest") or a business accepting bookings through Grouple ("Merchant").</p>
+
+  <h2>2. What Grouple does</h2>
+  <p>Grouple is a payment tool that lets a group of people split the cost of a booking and pay their own share individually. Grouple is not a booking platform: the underlying reservation (the villa, property, or service being paid for) is made directly with the Merchant, on the Merchant's own website or booking system. Grouple only handles the payment-splitting and collection process.</p>
+
+  <h2>3. How payment works</h2>
+  <ul>
+    <li>When a Guest starts a group payment, each member of the group pays their share individually via Stripe.</li>
+    <li>Funds are held by Grouple until either (a) the full group has paid and the Merchant confirms the booking, or (b) the payment window expires or the Merchant declines.</li>
+    <li>If the group does not fully pay, or the Merchant declines to confirm within the agreed response window, everyone who has already paid is automatically refunded in full.</li>
+    <li>Once the Merchant confirms a fully-paid booking, the funds (minus Grouple's fee, see clause 5) are released to the Merchant, and the booking is treated as confirmed between the Guest and the Merchant.</li>
+  </ul>
+
+  <h2>4. Merchant responsibilities</h2>
+  <p>Merchants are responsible for the underlying booking, property, or service being paid for — including its availability, description, and delivery. Grouple is not a party to that booking and is not responsible for disputes about the property or service itself, only for the payment-splitting process. Merchants must only confirm ("Accept") a booking they can genuinely honour, and must respond within the response window they set.</p>
+
+  <h2>5. Fees</h2>
+  <p>Grouple charges Merchants a platform fee of <span class="placeholder">[5%]</span> of the total booking value, deducted before funds are released. This fee is subject to change with reasonable notice to Merchants.</p>
+
+  <h2>6. Refunds and cancellations</h2>
+  <p>Refunds happen automatically in the following cases: the group does not complete payment before the deadline; the Merchant declines the booking; or the Merchant marks the property unavailable before the group has fully paid. Refunds are issued to the original payment method and may take <span class="placeholder">[5–10 business days]</span> to appear, depending on the Guest's bank. Once a Merchant has confirmed a fully-paid booking, any cancellation is subject to the Merchant's own cancellation policy, not Grouple's.</p>
+
+  <h2>7. Payment processing</h2>
+  <p>All card payments are processed by Stripe. Grouple does not store your card details. By using Grouple you also agree to <a href="https://stripe.com/legal/end-users" target="_blank" rel="noopener">Stripe's Services Agreement</a>.</p>
+
+  <h2>8. Liability</h2>
+  <p>Grouple provides the payment-splitting service on an "as is" basis. To the fullest extent permitted by law, Grouple is not liable for losses arising from a Merchant's failure to honour a confirmed booking, delays caused by Stripe or a Guest's bank, or indirect losses of any kind. Nothing in these terms limits liability that cannot be limited by law.</p>
+
+  <h2>9. Changes to these terms</h2>
+  <p>We may update these terms from time to time. Continued use of Grouple after an update means you accept the revised terms.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions about these terms can be sent to <span class="placeholder">[support email]</span>.</p>
+</div>
+</body>
+</html>

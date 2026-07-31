@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy · Grouple</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;line-height:1.6;}
+.topnav{background:#1D9E75;color:white;padding:14px 20px;display:flex;align-items:center;}
+.topnav-brand{font-size:16px;font-weight:600;text-decoration:none;color:white;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+h1{font-size:24px;color:#0d6e52;margin-bottom:6px;}
+.updated{font-size:12px;color:#888;margin-bottom:28px;}
+.notice{background:#fff8e6;border:1px solid #f3d98b;border-radius:8px;padding:14px 16px;font-size:12px;color:#854f0b;margin-bottom:28px;}
+h2{font-size:16px;color:#111;margin:28px 0 8px;}
+p, li{font-size:14px;color:#444;margin-bottom:10px;}
+ul, ol{padding-left:20px;margin-bottom:10px;}
+a{color:#0d6e52;}
+table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:13px;}
+th, td{text-align:left;padding:8px 10px;border-bottom:1px solid #e5e5e5;vertical-align:top;}
+th{color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
+.placeholder{background:#fef5f5;color:#c0392b;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:13px;}
+</style>
+</head>
+<body>
+<div class="topnav"><a href="/" class="topnav-brand">Grouple<span style="color:#e0f5ec;">.</span></a></div>
+<div class="wrap">
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: <span class="placeholder">[date]</span></div>
+
+  <div class="notice">
+    This is a working draft written for Grouple's early access period. Replace the bracketed placeholders with your actual company details, and have it reviewed before relying on it for real users at scale — particularly if you'll have guests or merchants based in the EU/UK (GDPR applies) or California (CCPA).
+  </div>
+
+  <h2>1. Who this applies to</h2>
+  <p>This policy covers personal data collected through grouple.app — by Guests splitting a payment and by Merchants using the Grouple dashboard. It's operated by <span class="placeholder">[Legal company name]</span>, based in <span class="placeholder">[country]</span>.</p>
+
+  <h2>2. What we collect</h2>
+  <table>
+    <tr><th>Data</th><th>From</th><th>Why</th></tr>
+    <tr><td>Email address</td><td>Guests, Merchants</td><td>Sending your group dashboard link, payment links, and booking confirmations</td></tr>
+    <tr><td>Name (optional)</td><td>Guests, at payment</td><td>Shown on the group dashboard so people can see who's paid</td></tr>
+    <tr><td>Business name</td><td>Merchants</td><td>Shown to guests during the payment flow</td></tr>
+    <tr><td>Payment details</td><td>Guests</td><td>Processed directly by Stripe — Grouple never receives or stores full card numbers</td></tr>
+    <tr><td>Booking details</td><td>Merchants, Guests</td><td>Property name, amount, and group size, to run the split-payment flow</td></tr>
+  </table>
+
+  <h2>3. Who we share it with</h2>
+  <ul>
+    <li><strong>Stripe</strong> — processes all payments and holds the payment method data. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.</li>
+    <li><strong>SendGrid (Twilio)</strong> — sends transactional emails (invite links, receipts, confirmations) on our behalf.</li>
+    <li><strong>The Merchant</strong> a Guest is paying — sees the booking status and who in the group has paid, but not payment card details.</li>
+  </ul>
+  <p>We don't sell personal data, and we don't share it with anyone else for marketing purposes.</p>
+
+  <h2>4. How long we keep it</h2>
+  <p>Booking and payment records are kept for as long as needed for accounting, tax, and dispute purposes (typically <span class="placeholder">[6 years]</span> in line with standard financial record-keeping requirements). You can ask us to delete other personal data we hold about you at any time, subject to that requirement.</p>
+
+  <h2>5. Your rights</h2>
+  <p>Depending on where you're based, you may have the right to access, correct, delete, or export the personal data we hold about you, and to object to certain uses of it. To exercise any of these, contact <span class="placeholder">[support email]</span>.</p>
+
+  <h2>6. Cookies</h2>
+  <p>Grouple uses one essential cookie to keep Merchants logged into their dashboard. We don't use tracking or advertising cookies.</p>
+
+  <h2>7. Security</h2>
+  <p>Payment data never touches our servers directly — it's handled by Stripe, a PCI-DSS Level 1 certified provider. Data we do hold (emails, booking details) is stored in an encrypted database with access limited to what's needed to run the service.</p>
+
+  <h2>8. Changes to this policy</h2>
+  <p>We may update this policy from time to time. Material changes will be reflected here with an updated date.</p>
+
+  <h2>9. Contact</h2>
+  <p>Questions about this policy, or requests relating to your data, can be sent to <span class="placeholder">[support email]</span>.</p>
+</div>
+</body>
+</html>
