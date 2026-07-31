@@ -103,4 +103,16 @@ async function sendMerchantLoginLink({ to, loginUrl }) {
   });
 }
 
-module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendBookingCancelled, sendMerchantLoginLink, sendMerchantApprovalNeeded };
+async function sendGuestLoginLink({ to, loginUrl }) {
+  await send({
+    to,
+    subject: 'Your Grouple bookings link',
+    html: wrap(`
+      <p>Click below to see all your Grouple group bookings.</p>
+      <p><a href="${loginUrl}" style="display:inline-block;background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:500;">View my bookings</a></p>
+      <p style="color:#888;font-size:12px;">This link expires in 15 minutes. If you didn't request it, you can ignore this email.</p>
+    `)
+  });
+}
+
+module.exports = { sendOrganiserWelcome, sendMemberInvite, sendBookingConfirmed, sendBookingCancelled, sendMerchantLoginLink, sendMerchantApprovalNeeded, sendGuestLoginLink };

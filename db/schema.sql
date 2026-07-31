@@ -49,3 +49,16 @@ CREATE TABLE IF NOT EXISTS merchant_sessions (
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS merchant_id UUID REFERENCES merchants(id);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS merchant_response_hours INTEGER NOT NULL DEFAULT 48;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS awaiting_since TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS guest_login_links (
+  token TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS guest_sessions (
+  token TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);

@@ -24,6 +24,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-danger{background:white;color:#c0392b;border:1.5px solid #f0c4bc;}
 .btn-danger:hover{background:#fef5f5;}
 pre{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;}
+.link-box{display:flex;gap:8px;}
+.link-box input{flex:1;min-width:0;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:12px;color:#555;background:#f9f9f9;font-family:monospace;}
+.more-toggle{margin-top:14px;}
+.more-toggle summary{cursor:pointer;font-size:12px;color:#0d6e52;font-weight:500;list-style:none;}
+.more-toggle summary::-webkit-details-marker{display:none;}
+.more-toggle summary:before{content:'+ ';}
+.more-toggle[open] summary:before{content:'− ';}
+.more-toggle-body{margin-top:12px;}
+.more-toggle-body p{font-size:11px;color:#888;margin:12px 0 6px;}
+.more-toggle-body p:first-child{margin-top:0;}
+.copy-msg{font-size:11px;color:#0d6e52;margin-top:6px;height:14px;}
 .booking-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;}
 .booking-row:last-child{border-bottom:none;}
 .booking-name{font-size:13px;font-weight:500;}
@@ -53,16 +64,23 @@ pre{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px;font
 
   <div class="card">
     <div class="card-title">Your payment link</div>
-    <p style="font-size:12px;color:#666;margin-bottom:10px;">Add this as a plain link or button on each property's page — no code required. Replace the property name and amount per listing. Guests click it, split the cost with their group, and pay on Grouple; the reservation itself still lives entirely on your own site.</p>
-    <pre id="snippet"></pre>
-    <p style="font-size:12px;color:#666;margin:14px 0 6px;">Or paste this directly as HTML:</p>
-    <pre id="link-html"></pre>
-  </div>
+    <p style="font-size:12px;color:#666;margin-bottom:10px;">Add this as a link or button on each property's page — no code required. Guests click it, split the cost with their group, and pay on Grouple; the reservation itself still lives entirely on your own site.</p>
+    <div class="link-box">
+      <input readonly id="snippet" onclick="this.select()" />
+      <button class="btn btn-small" onclick="copyLink()">Copy</button>
+    </div>
+    <div class="copy-msg" id="copy-msg"></div>
+    <p style="font-size:11px;color:#999;margin-top:8px;">This link is for one property at one price. Change the property name or amount in the copied link for each listing.</p>
 
-  <div class="card">
-    <div class="card-title">Advanced: inline widget</div>
-    <p style="font-size:12px;color:#666;margin-bottom:10px;">If you'd rather show the group-size picker directly on your own page instead of linking out, use this snippet. Requires editing your site's code.</p>
-    <pre id="embed-snippet"></pre>
+    <details class="more-toggle">
+      <summary>Need it as HTML, or the inline widget instead?</summary>
+      <div class="more-toggle-body">
+        <p>Paste directly as HTML:</p>
+        <pre id="link-html"></pre>
+        <p>Or show the group-size picker inline on your own page instead of linking out (requires editing your site's code):</p>
+        <pre id="embed-snippet"></pre>
+      </div>
+    </details>
   </div>
 
   <div class="card">
@@ -106,7 +124,7 @@ async function connectStripe() {
 
 function renderSnippet() {
   const link = `${window.location.origin}/start.html?merchant=${merchant.embedKey}&property=Your+Property+Name&amount=2000.00&currency=gbp`;
-  document.getElementById('snippet').textContent = link;
+  document.getElementById('snippet').value = link;
   document.getElementById('link-html').textContent = `<a href="${link}">Split with your group — powered by Grouple</a>`;
 
   const embedSnippet = `<div id="grouple-widget"></div>
@@ -116,6 +134,16 @@ function renderSnippet() {
   data-total-amount="2000.00"
   data-currency="gbp"><\/script>`;
   document.getElementById('embed-snippet').textContent = embedSnippet;
+}
+
+function copyLink() {
+  const input = document.getElementById('snippet');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    const msg = document.getElementById('copy-msg');
+    msg.textContent = '✓ Copied!';
+    setTimeout(() => msg.textContent = '', 2000);
+  });
 }
 
 async function loadBookings() {

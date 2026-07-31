@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grouple · Find my bookings</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;}
+.topnav{background:#1D9E75;color:white;padding:14px 20px;display:flex;align-items:center;}
+.topnav-brand{font-size:16px;font-weight:600;text-decoration:none;color:white;}
+.center{min-height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:white;border-radius:14px;max-width:420px;width:100%;overflow:hidden;border:1px solid #e0e0e0;}
+.header{padding:22px 24px 4px;}
+.header h2{font-size:18px;color:#111;}
+.header p{font-size:13px;color:#666;margin-top:4px;line-height:1.5;}
+.body{padding:18px 24px 24px;}
+input{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;outline:none;font-family:inherit;}
+input:focus{border-color:#1D9E75;}
+.btn{display:block;width:100%;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;margin-top:6px;background:#1D9E75;color:white;}
+.btn:hover{background:#178a65;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.msg{font-size:13px;color:#0d6e52;margin-top:12px;text-align:center;display:none;}
+.hint{font-size:12px;color:#888;text-align:center;margin-top:14px;}
+.hint a{color:#0d6e52;}
+</style>
+</head>
+<body>
+<div class="topnav"><a href="/" class="topnav-brand">Grouple<span style="color:#e0f5ec;">.</span></a></div>
+<div class="center">
+  <div class="card">
+    <div class="header">
+      <h2>Find my bookings</h2>
+      <p>Enter the email you used to pay your share, and we'll send you a link to see all your Grouple bookings.</p>
+    </div>
+    <div class="body">
+      <input type="email" id="email" placeholder="you@example.com" />
+      <button class="btn" id="login-btn" onclick="submitLogin()">Email me the link →</button>
+      <div class="msg" id="msg"></div>
+      <div class="hint">Already have a booking link in your email? You don't need this — just use that link directly.</div>
+    </div>
+  </div>
+</div>
+<script>
+async function submitLogin() {
+  const btn = document.getElementById('login-btn');
+  const msgEl = document.getElementById('msg');
+  const email = document.getElementById('email').value.trim();
+  if (!email) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    await fetch('/api/guest/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    msgEl.textContent = 'If that email has any bookings, check your inbox for a link. It expires in 15 minutes.';
+    msgEl.style.display = 'block';
+    btn.textContent = 'Link sent →';
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Email me the link →';
+  }
+}
+</script>
+</body>
+</html>

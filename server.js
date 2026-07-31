@@ -8,6 +8,7 @@ const { pool, initDb } = require('./db');
 const { sendOrganiserWelcome, sendMemberInvite } = require('./email');
 const { sweepExpiredApprovals, confirmMemberPayment } = require('./bookings');
 const merchantRoutes = require('./routes/merchant');
+const guestRoutes = require('./routes/guest');
 
 const app = express();
 app.use(cors());
@@ -40,6 +41,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/merchant', merchantRoutes);
+app.use('/api/guest', guestRoutes);
 
 app.post('/api/booking/create', async (req, res) => {
   try {
