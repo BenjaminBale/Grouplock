@@ -52,9 +52,17 @@ pre{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px;font
   </div>
 
   <div class="card">
-    <div class="card-title">Your embed snippet</div>
-    <p style="font-size:12px;color:#666;margin-bottom:10px;">Paste this on any property page. Replace the property name, total, and currency for each listing.</p>
+    <div class="card-title">Your payment link</div>
+    <p style="font-size:12px;color:#666;margin-bottom:10px;">Add this as a plain link or button on each property's page — no code required. Replace the property name and amount per listing. Guests click it, split the cost with their group, and pay on Grouple; the reservation itself still lives entirely on your own site.</p>
     <pre id="snippet"></pre>
+    <p style="font-size:12px;color:#666;margin:14px 0 6px;">Or paste this directly as HTML:</p>
+    <pre id="link-html"></pre>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Advanced: inline widget</div>
+    <p style="font-size:12px;color:#666;margin-bottom:10px;">If you'd rather show the group-size picker directly on your own page instead of linking out, use this snippet. Requires editing your site's code.</p>
+    <pre id="embed-snippet"></pre>
   </div>
 
   <div class="card">
@@ -97,13 +105,17 @@ async function connectStripe() {
 }
 
 function renderSnippet() {
-  const snippet = `<div id="grouple-widget"></div>
+  const link = `${window.location.origin}/start.html?merchant=${merchant.embedKey}&property=Your+Property+Name&amount=2000.00&currency=gbp`;
+  document.getElementById('snippet').textContent = link;
+  document.getElementById('link-html').textContent = `<a href="${link}">Split with your group — powered by Grouple</a>`;
+
+  const embedSnippet = `<div id="grouple-widget"></div>
 <script src="${window.location.origin}/embed.js"
   data-merchant-key="${merchant.embedKey}"
   data-property-name="Your Property Name"
   data-total-amount="2000.00"
   data-currency="gbp"><\/script>`;
-  document.getElementById('snippet').textContent = snippet;
+  document.getElementById('embed-snippet').textContent = embedSnippet;
 }
 
 async function loadBookings() {

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split this booking · Grouple</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh;}
+.topnav{background:#1D9E75;color:white;padding:14px 20px;display:flex;align-items:center;}
+.topnav-brand{font-size:16px;font-weight:600;}
+.wrap{max-width:420px;margin:32px auto;padding:0 16px;}
+.card{background:white;border-radius:12px;padding:22px;border:1px solid #ddd;}
+.property{font-size:12px;color:#888;margin-bottom:2px;}
+.property-name{font-size:18px;font-weight:600;color:#111;margin-bottom:18px;}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.row span{font-size:13px;color:#444;font-weight:500;}
+.stepper{display:flex;align-items:center;border:1.5px solid #cdeee0;border-radius:8px;overflow:hidden;}
+.stepper button{width:34px;height:34px;background:#e0f5ec;border:none;cursor:pointer;font-size:17px;color:#0d6e52;line-height:1;}
+.stepper button:hover{background:#c5edd9;}
+.stepper output{padding:0 16px;font-size:14px;font-weight:600;color:#0d6e52;background:white;height:34px;display:flex;align-items:center;border-left:1.5px solid #cdeee0;border-right:1.5px solid #cdeee0;}
+.summary-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;}
+.summary-row:last-child{border-bottom:none;}
+.summary-row strong{font-weight:600;}
+.note{font-size:12px;color:#666;line-height:1.6;background:#f9f9f9;border-radius:8px;padding:10px 12px;margin:16px 0;}
+label{font-size:12px;color:#555;display:block;margin:14px 0 6px;}
+input,select{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit;}
+input:focus,select:focus{border-color:#1D9E75;}
+.btn{display:block;width:100%;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;margin-top:18px;background:#1D9E75;color:white;}
+.btn:hover{background:#178a65;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.error{color:#c0392b;font-size:12px;margin-top:10px;display:none;}
+.powered{font-size:11px;color:#999;text-align:center;margin-top:14px;}
+.err-screen{max-width:420px;margin:80px auto;text-align:center;padding:0 20px;font-size:14px;color:#888;}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-brand">Grouple<span style="color:#e0f5ec;">.</span></div>
+</div>
+
+<div class="wrap" id="app">
+  <div class="card">
+    <div class="property">Split this booking with your group</div>
+    <div class="property-name" id="s-property">Loading…</div>
+
+    <div class="row">
+      <span>Number of people</span>
+      <div class="stepper">
+        <button type="button" id="s-minus">−</button>
+        <output id="s-count">2</output>
+        <button type="button" id="s-plus">+</button>
+      </div>
+    </div>
+
+    <div class="summary-row"><span>Each person pays</span><strong id="s-per-head">–</strong></div>
+    <div class="summary-row"><span>Total</span><strong id="s-total">–</strong></div>
+
+    <div class="note">Booking confirms only when everyone in the group has paid. If the group doesn't fill in time, everyone already paid is refunded automatically.</div>
+
+    <label for="s-email">Your email (for your group's dashboard link)</label>
+    <input type="email" id="s-email" placeholder="you@example.com" />
+
+    <label for="s-response-window">If the group fully pays, how long should the host have to confirm?</label>
+    <select id="s-response-window">
+      <option value="24">24 hours</option>
+      <option value="48" selected>48 hours</option>
+      <option value="72">72 hours</option>
+      <option value="168">1 week</option>
+    </select>
+
+    <button type="button" class="btn" id="s-submit">Start group payment →</button>
+    <div class="error" id="s-error"></div>
+    <div class="powered">🔒 Secured by Grouple</div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const propertyName = params.get('property') || 'Your booking';
+const totalAmount = Math.round(parseFloat(params.get('amount') || '0') * 100);
+const currency = (params.get('currency') || 'gbp').toLowerCase();
+const merchantKey = params.get('merchant') || undefined;
+const minPeople = parseInt(params.get('min') || '2', 10);
+const maxPeople = parseInt(params.get('max') || '20', 10);
+let people = Math.min(Math.max(parseInt(params.get('default') || String(minPeople), 10), minPeople), maxPeople);
+
+const symbols = { gbp: '£', usd: '$', eur: '€' };
+const symbol = symbols[currency] || currency.toUpperCase() + ' ';
+
+const propertyEl = document.getElementById('s-property');
+const countEl = document.getElementById('s-count');
+const perHeadEl = document.getElementById('s-per-head');
+const totalEl = document.getElementById('s-total');
+const errorEl = document.getElementById('s-error');
+const submitBtn = document.getElementById('s-submit');
+const appEl = document.getElementById('app');
+
+if (!totalAmount || !merchantKey) {
+  appEl.innerHTML = '<div class="err-screen">This payment link looks incomplete. Please go back to the property\'s website and try again.</div>';
+} else {
+  propertyEl.textContent = propertyName;
+  totalEl.textContent = symbol + (totalAmount / 100).toLocaleString();
+  render();
+}
+
+function render() {
+  countEl.textContent = people;
+  perHeadEl.textContent = symbol + Math.round(totalAmount / people / 100).toLocaleString();
+}
+
+document.getElementById('s-minus').addEventListener('click', () => { if (people > minPeople) { people--; render(); } });
+document.getElementById('s-plus').addEventListener('click', () => { if (people < maxPeople) { people++; render(); } });
+
+submitBtn.addEventListener('click', () => {
+  errorEl.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Setting up...';
+
+  const organiserEmail = document.getElementById('s-email').value.trim() || undefined;
+  const merchantResponseHours = parseInt(document.getElementById('s-response-window').value, 10);
+
+  fetch('/api/booking/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ propertyName, totalAmount, groupSize: people, currency, organiserEmail, merchantKey, merchantResponseHours })
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (!result.success) throw new Error(result.error || 'Something went wrong');
+      window.location.href = '/?booking=' + result.bookingId;
+    })
+    .catch(err => {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Start group payment →';
+    });
+});
+</script>
+</body>
+</html>
