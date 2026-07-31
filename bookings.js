@@ -2,7 +2,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { pool } = require('./db');
 const { sendBookingCancelled, sendBookingConfirmed, sendMerchantApprovalNeeded } = require('./email');
 
-const FEE_RATE = 0.015;
+const FEE_RATE = 0.05;
 
 // Authoritative source of truth for "did this member's payment succeed".
 // Called both by the client's post-payment confirm request (fast path, for
