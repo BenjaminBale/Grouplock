@@ -37,7 +37,8 @@ input:focus{border-color:#1D9E75;}
       <input type="email" id="email" placeholder="you@example.com" />
       <button class="btn" id="login-btn" onclick="submitLogin()">Email me the link →</button>
       <div class="msg" id="msg"></div>
-      <div class="hint">Already have a booking link in your email? You don't need this — just use that link directly.</div>
+      <div class="hint" id="retry-hint" style="display:none;">Entered the wrong email? <a href="#" onclick="resetForm(); return false;">Try a different one</a></div>
+      <div class="hint" id="default-hint">Already have a booking link in your email? You don't need this — just use that link directly.</div>
     </div>
   </div>
 </div>
@@ -59,10 +60,25 @@ async function submitLogin() {
     msgEl.textContent = 'If that email has any bookings, check your inbox for a link. It expires in 15 minutes.';
     msgEl.style.display = 'block';
     btn.textContent = 'Link sent →';
+    document.getElementById('default-hint').style.display = 'none';
+    document.getElementById('retry-hint').style.display = 'block';
   } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Email me the link →';
   }
+}
+
+function resetForm() {
+  const btn = document.getElementById('login-btn');
+  const msgEl = document.getElementById('msg');
+  const input = document.getElementById('email');
+  btn.disabled = false;
+  btn.textContent = 'Email me the link →';
+  msgEl.style.display = 'none';
+  document.getElementById('retry-hint').style.display = 'none';
+  document.getElementById('default-hint').style.display = 'block';
+  input.value = '';
+  input.focus();
 }
 </script>
 </body>
