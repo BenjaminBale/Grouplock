@@ -65,6 +65,7 @@ input:focus{border-color:#1D9E75;}
 .stat{flex:1;background:#f9f9f9;border-radius:8px;padding:10px;text-align:center;}
 .stat-val{font-size:20px;font-weight:600;color:#111;}
 .stat-label{font-size:11px;color:#888;margin-top:2px;}
+@media(max-width:480px){.landing-split{grid-template-columns:1fr !important;}}
 </style>
 </head>
 <body>
@@ -88,7 +89,7 @@ input:focus{border-color:#1D9E75;}
     </p>
   </div>
 
-  <div style="max-width:640px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div class="landing-split" style="max-width:640px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
     <div class="card" style="text-align:center;">
       <div class="card-title" style="font-size:15px;">I run a villa or holiday business</div>
       <p style="font-size:12px;color:#888;margin-bottom:14px;">Add a payment link to your site and let guests split the cost.</p>
